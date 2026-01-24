@@ -1,0 +1,25 @@
+# Example: DynamoDB Table created via ACK
+apiVersion: dynamodb.services.k8s.aws/v1alpha1
+kind: Table
+metadata:
+  name: eks-capabilities-table
+  namespace: default
+  annotations:
+    # Delete AWS resource when Kubernetes resource is deleted (default behavior)
+    services.k8s.aws/deletion-policy: Delete
+spec:
+  tableName: eks-capabilities-table
+  attributeDefinitions:
+    - attributeName: id
+      attributeType: S
+  keySchema:
+    - attributeName: id
+      keyType: HASH
+  billingMode: PAY_PER_REQUEST
+  # Allow deletion of table (set to false to enable deletion)
+  deletionProtectionEnabled: false
+  tags:
+    - key: Environment
+      value: example
+    - key: ManagedBy
+      value: terraform
