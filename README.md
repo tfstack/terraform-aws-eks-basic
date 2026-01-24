@@ -1,13 +1,13 @@
 # terraform-aws-eks-basic
 
-A basic Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Service) clusters. This module supports multiple compute modes: EC2, Fargate, and AutoMode, with EC2 as the primary focus.
+A basic Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Service) clusters. Currently supports EC2 and Fargate; AutoMode is scaffolded only (no AutoMode-specific resources yet).
 
 ## Features
 
-- **Multi-Compute Support**: Supports EC2, Fargate, and AutoMode compute types
+- **Multi-Compute Support**: Supports EC2 and Fargate; AutoMode is scaffolded
 - **EC2 Managed Node Groups**: Full support for EC2 managed node groups with auto-scaling
-- **Fargate Profiles**: Structure ready for Fargate profile configuration
-- **AutoMode**: Structure ready for EKS AutoMode configuration
+- **Fargate Profiles**: Supported via `fargate_profiles` and Fargate IAM role creation
+- **AutoMode**: Placeholder wiring only; no AutoMode-specific resources yet
 - **IRSA Support**: OIDC provider setup for IAM Roles for Service Accounts
 - **EKS Capabilities**: Managed ACK, KRO, and ArgoCD capabilities (optional, default: disabled)
   - **ACK**: AWS Controllers for Kubernetes - create AWS resources via Kubernetes manifests
@@ -18,7 +18,7 @@ A basic Terraform module for creating and managing Amazon EKS (Elastic Kubernete
   - AWS Load Balancer Controller (optional, default: disabled)
 - **Comprehensive Testing**: Includes Terraform test suite
 
-## Requirements
+## Prerequisites
 
 | Name | Version |
 | ---- | ------- |
@@ -34,7 +34,7 @@ A basic Terraform module for creating and managing Amazon EKS (Elastic Kubernete
 
 ```hcl
 module "eks" {
-  source = "path/to/terraform-aws-eks-basic"
+  source = "tfstack/eks-basic/aws"
 
   cluster_name    = "my-eks-cluster"
   cluster_version = "1.28"
@@ -62,7 +62,7 @@ module "eks" {
 
 ```hcl
 module "eks" {
-  source = "path/to/terraform-aws-eks-basic"
+  source = "tfstack/eks-basic/aws"
 
   cluster_name    = "my-eks-cluster"
   cluster_version = "1.28"
@@ -85,7 +85,7 @@ module "eks" {
 
 ```hcl
 module "eks" {
-  source = "path/to/terraform-aws-eks-basic"
+  source = "tfstack/eks-basic/aws"
 
   cluster_name    = "my-eks-cluster"
   cluster_version = "1.28"
@@ -109,7 +109,7 @@ module "eks" {
 
 ```hcl
 module "eks" {
-  source = "path/to/terraform-aws-eks-basic"
+  source = "tfstack/eks-basic/aws"
 
   cluster_name    = "my-eks-cluster"
   cluster_version = "1.28"
@@ -141,7 +141,7 @@ module "eks" {
 
 ```hcl
 module "eks" {
-  source = "path/to/terraform-aws-eks-basic"
+  source = "tfstack/eks-basic/aws"
 
   cluster_name    = "my-eks-cluster"
   cluster_version = "1.28"

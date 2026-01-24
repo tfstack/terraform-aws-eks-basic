@@ -4,10 +4,10 @@ This example demonstrates how to use EKS Capabilities (ACK, KRO, and ArgoCD) for
 
 ## What This Example Creates
 
-1. **EKS Cluster** with all three capabilities enabled:
+1. **EKS Cluster** with capabilities enabled:
    - **ACK** (AWS Controllers for Kubernetes) - Create AWS resources via Kubernetes manifests
    - **KRO** (Kube Resource Orchestrator) - Platform engineering abstractions
-   - **ArgoCD** - GitOps capability for continuous deployment
+   - **ArgoCD** - GitOps capability for continuous deployment (disabled by default in this example)
 
 2. **KRO Resource Graph Definition (RGD)** - Platform team abstraction template
 3. **KRO Resource Group Instance** - Developer-facing application deployment
@@ -16,7 +16,7 @@ This example demonstrates how to use EKS Capabilities (ACK, KRO, and ArgoCD) for
 
 ## Features Demonstrated
 
-- ✅ EKS Capabilities enablement (ACK, KRO, ArgoCD)
+- ✅ EKS Capabilities enablement (ACK, KRO, optional ArgoCD)
 - ✅ Platform engineering with KRO Resource Graph Definitions
 - ✅ Creating AWS resources (DynamoDB, S3, IAM) via ACK as part of the WebAppStack
 - ✅ Creating additional ACK example resources via standalone manifests
@@ -61,7 +61,7 @@ terraform apply -auto-approve
 
 Wait for the cluster and capabilities to be fully provisioned (this may take 10-15 minutes).
 
-**Note:** The module automatically creates IAM roles for each capability (ACK, KRO, ArgoCD) with the appropriate managed policies. If you prefer to use existing roles, you can provide them via the `*_capability_role_arn` variables.
+**Note:** The module automatically creates IAM roles for enabled capabilities (ACK, KRO, and ArgoCD if you enable it) with the appropriate managed policies. If you prefer to use existing roles, you can provide them via the `*_capability_role_arn` variables.
 
 ### Step 3: Configure kubectl
 
@@ -156,7 +156,9 @@ kubectl get policy.iam.services.k8s.aws eks-capabilities-app-policy
 kubectl get podidentityassociation eks-capabilities-app
 
 # Optional S3 bucket (only if bucket.enabled=true)
-kubectl get bucket eks-capabilities-bucket
+kubectl get bucket eks-capabilities-app-bucket
+
+# Keep this name distinct from the ACK example bucket (eks-capabilities-bucket)
 
 ```
 
@@ -197,7 +199,6 @@ The WebAppStack uses ACK-backed resources under the hood:
 - DynamoDB table for app state
 - Optional S3 bucket when enabled
 - IAM role/policy for Pod Identity
-- DynamoDB table for app state
 
 ## Verifying the Deployment
 
@@ -249,7 +250,7 @@ kubectl get ingress eks-capabilities-app-ingress -o jsonpath='{.status.loadBalan
 
 ## ArgoCD Capability
 
-The ArgoCD capability is enabled but requires additional configuration for full GitOps setup. The capability provides:
+The ArgoCD capability is disabled by default in this example. If you enable it, it provides:
 
 - Managed ArgoCD installation
 - GitOps workflow support

@@ -16,5 +16,5 @@ spec:
       alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
   bucket:
     enabled: false
-    name: eks-capabilities-bucket
+    name: eks-capabilities-app-bucket
     region: ap-southeast-2
