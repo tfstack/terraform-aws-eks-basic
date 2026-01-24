@@ -52,8 +52,7 @@ This example automatically creates a VPC with:
 
 ### Optional Variables
 
-- `cluster_name`: Name of the EKS cluster (default: `example-eks-cluster`)
-- `cluster_version`: Kubernetes version (default: `1.28`)
+- `cluster_version`: Kubernetes version (default: `1.34`)
 - `node_instance_types`: EC2 instance types for nodes (default: `["t3.medium"]`)
 - `node_desired_size`: Desired number of nodes (default: `2`)
 - `node_min_size`: Minimum number of nodes (default: `1`)
@@ -61,6 +60,8 @@ This example automatically creates a VPC with:
 - `node_disk_size`: Disk size in GiB (default: `20`)
 - `enable_ebs_csi_driver`: Enable EBS CSI Driver addon (default: `false`)
 - `enable_aws_lb_controller`: Enable AWS Load Balancer Controller (default: `false`)
+- `aws_auth_map_users`: IAM users to add to aws-auth (default: `[]`)
+- `aws_auth_map_roles`: IAM roles to add to aws-auth (default: `[]`)
 
 ## Outputs
 

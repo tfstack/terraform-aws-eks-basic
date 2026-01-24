@@ -56,7 +56,17 @@ cluster_name = "ebs-web-app"
 ```bash
 terraform init
 terraform plan
-terraform apply
+```
+
+Because this example uses the Kubernetes provider (which needs a live cluster),
+apply it in two stages:
+
+```bash
+# 1) Create the EKS cluster first
+terraform apply -target=module.eks -auto-approve
+
+# 2) Apply the rest (EBS CSI Driver, PVC, deployment, service)
+terraform apply -auto-approve
 ```
 
 Wait for the cluster and EBS CSI Driver to be fully provisioned (this may take 10-15 minutes).
