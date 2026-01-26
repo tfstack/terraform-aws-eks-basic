@@ -4,6 +4,13 @@
 aws_region   = "ap-southeast-2"
 cluster_name = "eks-capabilities"
 
+# Cluster admin access - IAM users/roles to grant admin access via EKS access entries
+# Replace with your actual IAM ARNs
+cluster_admin_arns = [
+  # "arn:aws:iam::YOUR_ACCOUNT:role/your-admin-role",
+  # "arn:aws:iam::YOUR_ACCOUNT:user/your-user"
+]
+
 # Optional: Override default node configuration
 # node_instance_types = ["t3.medium"]
 # node_desired_size   = 2

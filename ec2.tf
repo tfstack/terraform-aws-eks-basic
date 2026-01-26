@@ -87,6 +87,6 @@ resource "aws_eks_node_group" "default" {
   depends_on = [
     aws_iam_role_policy_attachment.eks_nodes_worker[0],
     aws_iam_role_policy_attachment.eks_nodes_cni[0],
-    aws_iam_role_policy_attachment.eks_nodes_ecr[0],
+    aws_iam_role_policy_attachment.eks_nodes_ecr[0]
   ]
 }

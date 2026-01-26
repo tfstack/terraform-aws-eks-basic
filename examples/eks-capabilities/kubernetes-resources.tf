@@ -208,3 +208,30 @@ resource "kubernetes_manifest" "ack_s3_bucket" {
     module.eks
   ]
 }
+
+# =============================================================================
+# KRO WebAppStack Instance (Application Deployment)
+# =============================================================================
+
+# WebAppStack instance - automatically deploys the application
+resource "kubernetes_manifest" "kro_webappstack_instance" {
+  count = local.enable_kro ? 1 : 0
+
+  manifest = yamldecode(
+    replace(
+      file("${path.module}/kubernetes/dev-team/eks-capabilities-app-instance.yaml"),
+      "region: ap-southeast-2",
+      "region: ${var.aws_region}"
+    )
+  )
+
+  field_manager {
+    force_conflicts = true
+  }
+
+  depends_on = [
+    module.eks,
+    kubernetes_manifest.kro_rgd,
+    kubernetes_manifest.kro_rbac
+  ]
+}

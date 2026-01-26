@@ -113,6 +113,20 @@ output "kro_capability_arn" {
 }
 
 output "argocd_capability_arn" {
-  description = "ARN of the ArgoCD capability (when enabled)"
-  value       = var.enable_argocd_capability ? aws_eks_capability.argocd[0].arn : null
+  description = "ARN of the ArgoCD capability (when enabled). NOTE: ArgoCD not currently supported - scaffolded for future use."
+  value       = null # ArgoCD capability is commented out (scaffolded)
+}
+
+# =============================================================================
+# Access Entry Outputs
+# =============================================================================
+
+output "ec2_access_entry_created" {
+  description = "Whether an access entry was created for EC2 nodes"
+  value       = local.ec2_needs_access_entry
+}
+
+output "fargate_access_entry_created" {
+  description = "Whether an access entry was created for Fargate pods"
+  value       = local.fargate_needs_access_entry
 }
