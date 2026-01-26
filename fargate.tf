@@ -55,6 +55,6 @@ resource "aws_eks_fargate_profile" "default" {
   tags = merge(var.tags, each.value.tags != null ? each.value.tags : {})
 
   depends_on = [
-    aws_iam_role_policy_attachment.eks_fargate_pod_execution_role[0],
+    aws_iam_role_policy_attachment.eks_fargate_pod_execution_role[0]
   ]
 }

@@ -43,27 +43,33 @@ resource "aws_eks_capability" "kro" {
   tags = var.tags
 }
 
-resource "aws_eks_capability" "argocd" {
-  count = var.enable_argocd_capability ? 1 : 0
+# =============================================================================
+# ArgoCD Capability (SCAFFOLDED - NOT SUPPORTED YET)
+# =============================================================================
+# ArgoCD capability requires AWS Identity Center configuration
+# This is scaffolded for future implementation but not currently supported
+# Uncomment and configure Identity Center before enabling
+# =============================================================================
 
-  cluster_name    = aws_eks_cluster.this.name
-  capability_name = "ARGOCD"
-  type            = "ARGOCD"
-
-  # ArgoCD requires a role ARN
-  # Use provided role ARN or create one automatically
-  role_arn = var.argocd_capability_role_arn != null ? var.argocd_capability_role_arn : aws_iam_role.argocd_capability[0].arn
-
-  # Note: ArgoCD capability requires AWS Identity Center configuration
-  # This is typically done via AWS Console or requires additional setup
-  # For now, this resource will fail if Identity Center is not configured
-  # Users should configure Identity Center before enabling ArgoCD capability
-
-  delete_propagation_policy = "RETAIN"
-
-  depends_on = [
-    aws_eks_cluster.this
-  ]
-
-  tags = var.tags
-}
+# resource "aws_eks_capability" "argocd" {
+#   count = var.enable_argocd_capability ? 1 : 0
+#
+#   cluster_name    = aws_eks_cluster.this.name
+#   capability_name = "ARGOCD"
+#   type            = "ARGOCD"
+#
+#   # ArgoCD requires a role ARN
+#   # Use provided role ARN or create one automatically
+#   role_arn = var.argocd_capability_role_arn != null ? var.argocd_capability_role_arn : aws_iam_role.argocd_capability[0].arn
+#
+#   # ArgoCD requires configuration parameter with Identity Center details
+#   configuration = var.argocd_capability_configuration != null ? var.argocd_capability_configuration : jsonencode({})
+#
+#   delete_propagation_policy = "RETAIN"
+#
+#   depends_on = [
+#     aws_eks_cluster.this
+#   ]
+#
+#   tags = var.tags
+# }

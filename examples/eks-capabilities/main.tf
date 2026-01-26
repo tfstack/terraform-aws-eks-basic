@@ -116,7 +116,6 @@ module "eks" {
   node_disk_size      = var.node_disk_size
 
   # Enable EKS Capabilities
-  # Note: ArgoCD requires AWS Identity Center setup, so it's disabled by default
   enable_ack_capability = var.enable_ack_capability
   ack_capability_iam_policy_arns = {
     s3           = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
@@ -126,7 +125,7 @@ module "eks" {
   }
   enable_kro_capability    = var.enable_kro_capability
   kro_capability_role_arn  = var.kro_capability_role_arn
-  enable_argocd_capability = var.enable_argocd_capability # Requires AWS Identity Center configuration
+  enable_argocd_capability = var.enable_argocd_capability
 
   # Optional: Enable EBS CSI Driver for persistent volumes
   enable_ebs_csi_driver = var.enable_ebs_csi_driver
@@ -134,5 +133,11 @@ module "eks" {
   # Enable Pod Identity Agent for AWS SDK credentials in pods
   enable_pod_identity_agent = var.enable_pod_identity_agent
 
+  # Cluster admin access entries
+  cluster_admin_arns = var.cluster_admin_arns
+
   tags = var.tags
+
+  # Explicitly depend on the VPC module to ensure all its resources are created before the EKS cluster
+  depends_on = [module.vpc]
 }

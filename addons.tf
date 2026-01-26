@@ -128,7 +128,9 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   service_account_role_arn    = aws_iam_role.ebs_csi_driver[0].arn
 
   depends_on = [
-    aws_iam_role_policy.ebs_csi_driver[0]
+    aws_iam_role_policy.ebs_csi_driver[0],
+    # Wait for nodes to be available since EBS CSI driver runs as pods
+    aws_eks_node_group.default,
   ]
 
   tags = var.tags
@@ -154,7 +156,9 @@ resource "kubernetes_storage_class" "ebs_csi_default" {
   }
 
   depends_on = [
-    aws_eks_addon.ebs_csi_driver[0]
+    aws_eks_addon.ebs_csi_driver[0],
+    # Wait for access entries to be created and propagated if they exist
+    aws_eks_access_policy_association.cluster_admin_policy
   ]
 }
 
@@ -300,7 +304,9 @@ resource "kubernetes_service_account" "aws_lb_controller" {
     aws_eks_cluster.this,
     aws_iam_role_policy_attachment.aws_lb_controller[0],
     aws_iam_role_policy_attachment.aws_lb_controller_ec2[0],
-    aws_iam_role_policy.aws_lb_controller_waf[0]
+    aws_iam_role_policy.aws_lb_controller_waf[0],
+    # Wait for access entries to be created and propagated if they exist
+    aws_eks_access_policy_association.cluster_admin_policy
   ]
 }
 

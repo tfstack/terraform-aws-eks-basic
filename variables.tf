@@ -241,7 +241,7 @@ variable "enable_kro_capability" {
 }
 
 variable "enable_argocd_capability" {
-  description = "Whether to enable ArgoCD GitOps capability"
+  description = "Whether to enable ArgoCD GitOps capability. NOTE: Not currently supported - requires AWS Identity Center configuration. Scaffolded for future use."
   type        = bool
   default     = false
 }
@@ -265,13 +265,13 @@ variable "kro_capability_role_arn" {
 }
 
 variable "argocd_capability_role_arn" {
-  description = "IAM role ARN for ArgoCD capability. If not provided, AWS will create a default role."
+  description = "IAM role ARN for ArgoCD capability. NOTE: ArgoCD not currently supported - requires AWS Identity Center. Scaffolded for future use."
   type        = string
   default     = null
 }
 
 variable "argocd_capability_configuration" {
-  description = "Configuration JSON for ArgoCD capability. If not provided, a minimal configuration will be used. Full ArgoCD setup requires AWS Identity Center configuration."
+  description = "Configuration JSON for ArgoCD capability. NOTE: ArgoCD not currently supported - requires AWS Identity Center configuration. Scaffolded for future use."
   type        = string
   default     = null
 }
@@ -279,6 +279,18 @@ variable "argocd_capability_configuration" {
 # =============================================================================
 # Common Variables
 # =============================================================================
+
+variable "cluster_admin_arns" {
+  description = "List of IAM user/role ARNs to grant cluster admin access via EKS access entries. Only used when capabilities are enabled or cluster_authentication_mode is not CONFIG_MAP. Defaults to empty list."
+  type        = list(string)
+  default     = []
+}
+
+variable "access_entry_wait_duration" {
+  description = "Duration to wait after creating EKS access entries before creating node groups/Fargate profiles. This allows AWS to propagate the access entries. Defaults to 30s."
+  type        = string
+  default     = "30s"
+}
 
 variable "tags" {
   description = "Map of tags to apply to all resources"

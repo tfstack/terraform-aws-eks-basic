@@ -71,15 +71,21 @@ variable "enable_kro_capability" {
 }
 
 variable "enable_argocd_capability" {
-  description = "Whether to enable the ArgoCD capability"
+  description = "Whether to enable the ArgoCD capability. Note: ArgoCD requires a configuration parameter and AWS Identity Center setup."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "kro_capability_role_arn" {
   description = "Optional IAM role ARN for the KRO capability. If not set, the module creates one."
   type        = string
   default     = null
+}
+
+variable "cluster_admin_arns" {
+  description = "List of IAM user/role ARNs to grant cluster admin access via EKS access entries"
+  type        = list(string)
+  default     = []
 }
 
 variable "tags" {

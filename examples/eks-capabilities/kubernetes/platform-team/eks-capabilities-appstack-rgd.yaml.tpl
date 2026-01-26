@@ -27,6 +27,9 @@ spec:
   resources:
   # Kubernetes Deployment
   - id: deployment
+    dependsOn:
+      - podidentity
+      - serviceaccount
     template:
       apiVersion: apps/v1
       kind: Deployment
@@ -55,7 +58,7 @@ spec:
                     name: http
                 env:
                   - name: AWS_REGION
-                    value: "__AWS_REGION__"
+                    value: ${schema.spec.bucket.region}
                   - name: DYNAMODB_TABLE_NAME
                     value: ${schema.spec.name}
                 resources:

@@ -9,10 +9,11 @@ A basic Terraform module for creating and managing Amazon EKS (Elastic Kubernete
 - **Fargate Profiles**: Supported via `fargate_profiles` and Fargate IAM role creation
 - **AutoMode**: Placeholder wiring only; no AutoMode-specific resources yet
 - **IRSA Support**: OIDC provider setup for IAM Roles for Service Accounts
-- **EKS Capabilities**: Managed ACK, KRO, and ArgoCD capabilities (optional, default: disabled)
+- **EKS Capabilities**: Managed ACK and KRO capabilities (optional, default: disabled)
   - **ACK**: AWS Controllers for Kubernetes - create AWS resources via Kubernetes manifests
   - **KRO**: Kube Resource Orchestrator - platform engineering abstractions
-  - **ArgoCD**: GitOps capability for continuous deployment
+  - **ArgoCD**: Scaffolded only (requires AWS Identity Center setup)
+- **Access Management**: Automatic EKS access entry creation for cluster admins when capabilities are enabled
 - **Optional Addons**:
   - EBS CSI Driver (optional, default: disabled)
   - AWS Load Balancer Controller (optional, default: disabled)
@@ -97,12 +98,27 @@ module "eks" {
   # Enable EKS Capabilities for platform engineering
   enable_ack_capability    = true  # AWS Controllers for Kubernetes
   enable_kro_capability    = true  # Kube Resource Orchestrator
-  enable_argocd_capability = true  # ArgoCD GitOps
+  # enable_argocd_capability = false  # Not supported yet - requires Identity Center
+
+  # Grant cluster admin access to IAM users/roles
+  cluster_admin_arns = [
+    "arn:aws:iam::123456789012:user/admin-user",
+    "arn:aws:iam::123456789012:role/admin-role"
+  ]
 
   tags = {
     Environment = "production"
   }
 }
+```
+
+**Note**: When capabilities are enabled, the cluster uses `API_AND_CONFIG_MAP` authentication mode. You must specify `cluster_admin_arns` to grant access to IAM users/roles for kubectl access.
+
+  tags = {
+    Environment = "production"
+  }
+}
+
 ```
 
 ### Fargate Example
@@ -177,7 +193,7 @@ module "eks" {
 
 - **[examples/basic](examples/basic/)** - Basic EKS cluster with EC2 node groups
 - **[examples/ebs-web-app](examples/ebs-web-app/)** - Web application with EBS persistent volume
-- **[examples/eks-capabilities](examples/eks-capabilities/)** - Complete platform engineering example with ACK, KRO, and ArgoCD capabilities
+- **[examples/eks-capabilities](examples/eks-capabilities/)** - Complete platform engineering example with ACK and KRO capabilities (ArgoCD scaffolded but not supported)
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements

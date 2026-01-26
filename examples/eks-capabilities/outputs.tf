@@ -63,10 +63,7 @@ output "next_steps" {
     3. Verify Resource Graph Definition (automatically deployed):
        kubectl get resourcegraphdefinition eks-capabilities-appstack.kro.run
 
-    4. Deploy application using KRO (dev team):
-       kubectl apply -f kubernetes/dev-team/eks-capabilities-app-instance.yaml
-
-    5. Verify ACK resources (automatically deployed):
+    4. Verify ACK resources (automatically deployed):
        kubectl get table,bucket,role
 
     6. Verify capabilities:

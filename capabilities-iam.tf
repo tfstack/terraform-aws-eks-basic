@@ -69,33 +69,40 @@ resource "aws_iam_role" "kro_capability" {
 
 # Note: KRO capability roles don't require managed policies - AWS manages permissions internally
 
-# ArgoCD Capability Role
-data "aws_iam_policy_document" "argocd_capability_assume_role" {
-  count = var.enable_argocd_capability ? 1 : 0
+# =============================================================================
+# ArgoCD Capability Role (SCAFFOLDED - NOT SUPPORTED YET)
+# =============================================================================
+# ArgoCD capability requires AWS Identity Center configuration
+# This is scaffolded for future implementation but not currently supported
+# Uncomment and configure Identity Center before enabling
+# =============================================================================
 
-  statement {
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["capabilities.eks.amazonaws.com"]
-    }
-
-    actions = [
-      "sts:AssumeRole",
-      "sts:TagSession"
-    ]
-  }
-}
-
-resource "aws_iam_role" "argocd_capability" {
-  count = var.enable_argocd_capability ? 1 : 0
-
-  name               = var.argocd_capability_role_arn != null ? null : "${var.cluster_name}-argocd-capability-role"
-  name_prefix        = var.argocd_capability_role_arn != null ? null : null
-  assume_role_policy = data.aws_iam_policy_document.argocd_capability_assume_role[0].json
-  tags               = var.tags
-}
-
-# Note: ArgoCD capability roles don't require managed policies - AWS manages permissions internally
-# ArgoCD also requires configuration which should be provided via the capability resource
+# data "aws_iam_policy_document" "argocd_capability_assume_role" {
+#   count = var.enable_argocd_capability ? 1 : 0
+#
+#   statement {
+#     effect = "Allow"
+#
+#     principals {
+#       type        = "Service"
+#       identifiers = ["capabilities.eks.amazonaws.com"]
+#     }
+#
+#     actions = [
+#       "sts:AssumeRole",
+#       "sts:TagSession"
+#     ]
+#   }
+# }
+#
+# resource "aws_iam_role" "argocd_capability" {
+#   count = var.enable_argocd_capability ? 1 : 0
+#
+#   name               = var.argocd_capability_role_arn != null ? null : "${var.cluster_name}-argocd-capability-role"
+#   name_prefix        = var.argocd_capability_role_arn != null ? null : null
+#   assume_role_policy = data.aws_iam_policy_document.argocd_capability_assume_role[0].json
+#   tags               = var.tags
+# }
+#
+# # Note: ArgoCD capability roles don't require managed policies - AWS manages permissions internally
+# # ArgoCD also requires configuration which should be provided via the capability resource
