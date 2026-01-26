@@ -223,17 +223,19 @@ No modules.
 
 | Name | Type |
 |------|------|
+| [aws_eks_access_entry.cluster_admins](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_entry) | resource |
+| [aws_eks_access_entry.ec2_nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_entry) | resource |
+| [aws_eks_access_entry.fargate_pods](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_entry) | resource |
+| [aws_eks_access_policy_association.cluster_admin_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_policy_association) | resource |
 | [aws_eks_addon.ebs_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
 | [aws_eks_addon.pod_identity_agent](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
 | [aws_eks_capability.ack](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_capability) | resource |
-| [aws_eks_capability.argocd](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_capability) | resource |
 | [aws_eks_capability.kro](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_capability) | resource |
 | [aws_eks_cluster.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster) | resource |
 | [aws_eks_fargate_profile.default](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_fargate_profile) | resource |
 | [aws_eks_node_group.default](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_node_group) | resource |
 | [aws_iam_openid_connect_provider.eks](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_openid_connect_provider) | resource |
 | [aws_iam_role.ack_capability](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
-| [aws_iam_role.argocd_capability](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.aws_lb_controller](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.ebs_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.eks_cluster](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
@@ -255,7 +257,6 @@ No modules.
 | [kubernetes_storage_class.ebs_csi_default](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/storage_class) | resource |
 | [aws_eks_cluster_auth.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/eks_cluster_auth) | data source |
 | [aws_iam_policy_document.ack_capability_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
-| [aws_iam_policy_document.argocd_capability_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.aws_lb_controller_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.ebs_csi_driver_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.eks_cluster_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -269,21 +270,23 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| <a name="input_access_entry_wait_duration"></a> [access\_entry\_wait\_duration](#input\_access\_entry\_wait\_duration) | Duration to wait after creating EKS access entries before creating node groups/Fargate profiles. This allows AWS to propagate the access entries. Defaults to 30s. | `string` | `"30s"` | no |
 | <a name="input_ack_capability_iam_policy_arns"></a> [ack\_capability\_iam\_policy\_arns](#input\_ack\_capability\_iam\_policy\_arns) | Map of IAM policy ARNs to attach to the ACK capability role. Required for ACK to manage AWS resources (e.g., S3, DynamoDB, IAM). | `map(string)` | `{}` | no |
 | <a name="input_ack_capability_role_arn"></a> [ack\_capability\_role\_arn](#input\_ack\_capability\_role\_arn) | IAM role ARN for ACK capability to create AWS resources. If not provided, AWS will create a default role. | `string` | `null` | no |
-| <a name="input_argocd_capability_configuration"></a> [argocd\_capability\_configuration](#input\_argocd\_capability\_configuration) | Configuration JSON for ArgoCD capability. If not provided, a minimal configuration will be used. Full ArgoCD setup requires AWS Identity Center configuration. | `string` | `null` | no |
-| <a name="input_argocd_capability_role_arn"></a> [argocd\_capability\_role\_arn](#input\_argocd\_capability\_role\_arn) | IAM role ARN for ArgoCD capability. If not provided, AWS will create a default role. | `string` | `null` | no |
+| <a name="input_argocd_capability_configuration"></a> [argocd\_capability\_configuration](#input\_argocd\_capability\_configuration) | Configuration JSON for ArgoCD capability. NOTE: ArgoCD not currently supported - requires AWS Identity Center configuration. Scaffolded for future use. | `string` | `null` | no |
+| <a name="input_argocd_capability_role_arn"></a> [argocd\_capability\_role\_arn](#input\_argocd\_capability\_role\_arn) | IAM role ARN for ArgoCD capability. NOTE: ArgoCD not currently supported - requires AWS Identity Center. Scaffolded for future use. | `string` | `null` | no |
 | <a name="input_aws_auth_map_roles"></a> [aws\_auth\_map\_roles](#input\_aws\_auth\_map\_roles) | List of IAM roles to add to aws-auth ConfigMap for Kubernetes access | <pre>list(object({<br/>    rolearn  = string<br/>    username = string<br/>    groups   = list(string)<br/>  }))</pre> | `[]` | no |
 | <a name="input_aws_auth_map_users"></a> [aws\_auth\_map\_users](#input\_aws\_auth\_map\_users) | List of IAM users to add to aws-auth ConfigMap for Kubernetes access | <pre>list(object({<br/>    userarn  = string<br/>    username = string<br/>    groups   = list(string)<br/>  }))</pre> | `[]` | no |
 | <a name="input_aws_lb_controller_helm_values"></a> [aws\_lb\_controller\_helm\_values](#input\_aws\_lb\_controller\_helm\_values) | Additional Helm values for the AWS Load Balancer Controller | `map(string)` | `{}` | no |
 | <a name="input_aws_lb_controller_helm_version"></a> [aws\_lb\_controller\_helm\_version](#input\_aws\_lb\_controller\_helm\_version) | Version of the AWS Load Balancer Controller Helm chart | `string` | `"1.7.2"` | no |
+| <a name="input_cluster_admin_arns"></a> [cluster\_admin\_arns](#input\_cluster\_admin\_arns) | List of IAM user/role ARNs to grant cluster admin access via EKS access entries. Only used when capabilities are enabled or cluster\_authentication\_mode is not CONFIG\_MAP. Defaults to empty list. | `list(string)` | `[]` | no |
 | <a name="input_cluster_authentication_mode"></a> [cluster\_authentication\_mode](#input\_cluster\_authentication\_mode) | Authentication mode for the EKS cluster. Valid values: CONFIG\_MAP, API, API\_AND\_CONFIG\_MAP. Defaults to API\_AND\_CONFIG\_MAP when capabilities are enabled, otherwise CONFIG\_MAP. | `string` | `"CONFIG_MAP"` | no |
 | <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | Name of the EKS cluster | `string` | n/a | yes |
 | <a name="input_cluster_version"></a> [cluster\_version](#input\_cluster\_version) | Kubernetes version to use for the EKS cluster | `string` | n/a | yes |
 | <a name="input_compute_mode"></a> [compute\_mode](#input\_compute\_mode) | List of compute modes to enable. Valid values: ec2, fargate, automode | `list(string)` | <pre>[<br/>  "ec2"<br/>]</pre> | no |
 | <a name="input_ebs_csi_driver_version"></a> [ebs\_csi\_driver\_version](#input\_ebs\_csi\_driver\_version) | Version of the AWS EBS CSI Driver add-on. If null, uses latest version. | `string` | `null` | no |
 | <a name="input_enable_ack_capability"></a> [enable\_ack\_capability](#input\_enable\_ack\_capability) | Whether to enable AWS Controllers for Kubernetes (ACK) capability | `bool` | `false` | no |
-| <a name="input_enable_argocd_capability"></a> [enable\_argocd\_capability](#input\_enable\_argocd\_capability) | Whether to enable ArgoCD GitOps capability | `bool` | `false` | no |
+| <a name="input_enable_argocd_capability"></a> [enable\_argocd\_capability](#input\_enable\_argocd\_capability) | Whether to enable ArgoCD GitOps capability. NOTE: Not currently supported - requires AWS Identity Center configuration. Scaffolded for future use. | `bool` | `false` | no |
 | <a name="input_enable_aws_lb_controller"></a> [enable\_aws\_lb\_controller](#input\_enable\_aws\_lb\_controller) | Whether to install AWS Load Balancer Controller | `bool` | `false` | no |
 | <a name="input_enable_ebs_csi_driver"></a> [enable\_ebs\_csi\_driver](#input\_enable\_ebs\_csi\_driver) | Whether to install AWS EBS CSI Driver | `bool` | `false` | no |
 | <a name="input_enable_kro_capability"></a> [enable\_kro\_capability](#input\_enable\_kro\_capability) | Whether to enable Kube Resource Orchestrator (KRO) capability | `bool` | `false` | no |
@@ -314,7 +317,7 @@ No modules.
 | Name | Description |
 |------|-------------|
 | <a name="output_ack_capability_arn"></a> [ack\_capability\_arn](#output\_ack\_capability\_arn) | ARN of the ACK capability (when enabled) |
-| <a name="output_argocd_capability_arn"></a> [argocd\_capability\_arn](#output\_argocd\_capability\_arn) | ARN of the ArgoCD capability (when enabled) |
+| <a name="output_argocd_capability_arn"></a> [argocd\_capability\_arn](#output\_argocd\_capability\_arn) | ARN of the ArgoCD capability (when enabled). NOTE: ArgoCD not currently supported - scaffolded for future use. |
 | <a name="output_aws_lb_controller_role_arn"></a> [aws\_lb\_controller\_role\_arn](#output\_aws\_lb\_controller\_role\_arn) | IAM role ARN for AWS Load Balancer Controller (when enabled) |
 | <a name="output_cluster_arn"></a> [cluster\_arn](#output\_cluster\_arn) | ARN of the EKS cluster |
 | <a name="output_cluster_auth_token"></a> [cluster\_auth\_token](#output\_cluster\_auth\_token) | Token to authenticate with the EKS cluster |
@@ -324,6 +327,8 @@ No modules.
 | <a name="output_cluster_name"></a> [cluster\_name](#output\_cluster\_name) | Name of the EKS cluster |
 | <a name="output_cluster_version"></a> [cluster\_version](#output\_cluster\_version) | Kubernetes version of the EKS cluster |
 | <a name="output_ebs_csi_driver_role_arn"></a> [ebs\_csi\_driver\_role\_arn](#output\_ebs\_csi\_driver\_role\_arn) | IAM role ARN for EBS CSI Driver (when enabled) |
+| <a name="output_ec2_access_entry_created"></a> [ec2\_access\_entry\_created](#output\_ec2\_access\_entry\_created) | Whether an access entry was created for EC2 nodes |
+| <a name="output_fargate_access_entry_created"></a> [fargate\_access\_entry\_created](#output\_fargate\_access\_entry\_created) | Whether an access entry was created for Fargate pods |
 | <a name="output_fargate_profile_arns"></a> [fargate\_profile\_arns](#output\_fargate\_profile\_arns) | Map of Fargate profile ARNs (when Fargate mode is enabled) |
 | <a name="output_fargate_role_arn"></a> [fargate\_role\_arn](#output\_fargate\_role\_arn) | IAM role ARN for Fargate pods (when Fargate mode is enabled) |
 | <a name="output_kro_capability_arn"></a> [kro\_capability\_arn](#output\_kro\_capability\_arn) | ARN of the KRO capability (when enabled) |
