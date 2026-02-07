@@ -1,21 +1,40 @@
+################################################################################
+# Cluster
+################################################################################
+
+output "cluster_arn" {
+  description = "The Amazon Resource Name (ARN) of the cluster"
+  value       = aws_eks_cluster.this.arn
+}
+
 output "cluster_name" {
-  description = "Name of the EKS cluster"
+  description = "The name of the EKS cluster"
   value       = aws_eks_cluster.this.name
 }
 
 output "cluster_endpoint" {
-  description = "Endpoint for EKS control plane"
+  description = "Endpoint for your Kubernetes API server"
   value       = aws_eks_cluster.this.endpoint
 }
 
-output "cluster_ca_data" {
+output "cluster_version" {
+  description = "The Kubernetes version for the cluster"
+  value       = aws_eks_cluster.this.version
+}
+
+output "cluster_platform_version" {
+  description = "Platform version for the cluster"
+  value       = aws_eks_cluster.this.platform_version
+}
+
+output "cluster_certificate_authority_data" {
   description = "Base64 encoded certificate data required to communicate with the cluster"
-  value       = aws_eks_cluster.this.certificate_authority[0].data
+  value       = try(aws_eks_cluster.this.certificate_authority[0].data, null)
 }
 
 output "cluster_ca_certificate" {
   description = "Decoded certificate data required to communicate with the cluster"
-  value       = base64decode(aws_eks_cluster.this.certificate_authority[0].data)
+  value       = try(base64decode(aws_eks_cluster.this.certificate_authority[0].data), null)
 }
 
 output "cluster_auth_token" {
@@ -24,109 +43,138 @@ output "cluster_auth_token" {
   sensitive   = true
 }
 
-output "cluster_version" {
-  description = "Kubernetes version of the EKS cluster"
-  value       = aws_eks_cluster.this.version
+output "cluster_oidc_issuer_url" {
+  description = "The URL on the EKS cluster for the OpenID Connect identity provider"
+  value       = try(aws_eks_cluster.this.identity[0].oidc[0].issuer, null)
 }
 
-output "cluster_arn" {
-  description = "ARN of the EKS cluster"
-  value       = aws_eks_cluster.this.arn
+output "cluster_service_cidr" {
+  description = "The CIDR block where Kubernetes pod and service IP addresses are assigned from"
+  value       = try(aws_eks_cluster.this.kubernetes_network_config[0].service_ipv4_cidr, null)
 }
+
+output "cluster_primary_security_group_id" {
+  description = "Cluster security group that was created by Amazon EKS for the cluster"
+  value       = try(aws_eks_cluster.this.vpc_config[0].cluster_security_group_id, null)
+}
+
+################################################################################
+# KMS Key
+################################################################################
+
+output "kms_key_arn" {
+  description = "The Amazon Resource Name (ARN) of the key"
+  value       = try(aws_kms_key.this[0].arn, null)
+}
+
+output "kms_key_id" {
+  description = "The globally unique identifier for the key"
+  value       = try(aws_kms_key.this[0].id, null)
+}
+
+################################################################################
+# Security Groups
+################################################################################
+
+output "cluster_security_group_id" {
+  description = "ID of the cluster security group"
+  value       = try(aws_security_group.cluster[0].id, null)
+}
+
+output "node_security_group_id" {
+  description = "ID of the node shared security group"
+  value       = try(aws_security_group.node[0].id, null)
+}
+
+################################################################################
+# IAM Roles
+################################################################################
+
+output "cluster_iam_role_arn" {
+  description = "Cluster IAM role ARN"
+  value       = try(aws_iam_role.this[0].arn, null)
+}
+
+output "cluster_iam_role_name" {
+  description = "Cluster IAM role name"
+  value       = try(aws_iam_role.this[0].name, null)
+}
+
+output "node_iam_role_arn" {
+  description = "Node IAM role ARN"
+  value       = try(aws_iam_role.eks_nodes[0].arn, null)
+}
+
+output "node_iam_role_name" {
+  description = "Node IAM role name"
+  value       = try(aws_iam_role.eks_nodes[0].name, null)
+}
+
+################################################################################
+# OIDC Provider
+################################################################################
 
 output "oidc_provider_arn" {
-  description = "ARN of the EKS OIDC provider"
-  value       = aws_iam_openid_connect_provider.eks.arn
+  description = "The ARN of the OIDC Provider"
+  value       = try(aws_iam_openid_connect_provider.oidc_provider[0].arn, null)
 }
 
-output "oidc_provider_url" {
-  description = "URL of the EKS OIDC provider"
-  value       = aws_eks_cluster.this.identity[0].oidc[0].issuer
+output "oidc_provider" {
+  description = "The OpenID Connect identity provider (issuer URL without leading `https://`)"
+  value       = try(replace(aws_eks_cluster.this.identity[0].oidc[0].issuer, "https://", ""), null)
 }
 
-# =============================================================================
-# EC2 Outputs
-# =============================================================================
+################################################################################
+# Access Entries
+################################################################################
 
-output "node_group_id" {
-  description = "ID of the EKS node group (when EC2 mode is enabled)"
-  value       = contains(var.compute_mode, "ec2") ? aws_eks_node_group.default[0].id : null
+output "access_entries" {
+  description = "Map of access entries created and their attributes"
+  value       = aws_eks_access_entry.this
 }
 
-output "node_group_arn" {
-  description = "ARN of the EKS node group (when EC2 mode is enabled)"
-  value       = contains(var.compute_mode, "ec2") ? aws_eks_node_group.default[0].arn : null
+output "access_policy_associations" {
+  description = "Map of eks cluster access policy associations created and their attributes"
+  value       = aws_eks_access_policy_association.this
 }
 
-output "node_group_status" {
-  description = "Status of the EKS node group (when EC2 mode is enabled)"
-  value       = contains(var.compute_mode, "ec2") ? aws_eks_node_group.default[0].status : null
+################################################################################
+# CloudWatch Log Group
+################################################################################
+
+output "cloudwatch_log_group_name" {
+  description = "Name of cloudwatch log group created"
+  value       = try(aws_cloudwatch_log_group.this[0].name, null)
 }
 
-output "node_role_arn" {
-  description = "IAM role ARN for EC2 nodes (when EC2 mode is enabled)"
-  value       = contains(var.compute_mode, "ec2") ? aws_iam_role.eks_nodes[0].arn : null
+output "cloudwatch_log_group_arn" {
+  description = "Arn of cloudwatch log group created"
+  value       = try(aws_cloudwatch_log_group.this[0].arn, null)
 }
 
-# =============================================================================
-# Fargate Outputs
-# =============================================================================
+################################################################################
+# EKS Addons
+################################################################################
 
-output "fargate_profile_arns" {
-  description = "Map of Fargate profile ARNs (when Fargate mode is enabled)"
-  value = contains(var.compute_mode, "fargate") ? {
-    for k, v in aws_eks_fargate_profile.default : k => v.arn
-  } : {}
+output "cluster_addons" {
+  description = "Map of attribute maps for all EKS cluster addons enabled"
+  value       = merge(aws_eks_addon.before_compute, aws_eks_addon.this)
 }
 
-output "fargate_role_arn" {
-  description = "IAM role ARN for Fargate pods (when Fargate mode is enabled)"
-  value       = contains(var.compute_mode, "fargate") ? aws_iam_role.eks_fargate[0].arn : null
+################################################################################
+# EKS Managed Node Groups
+################################################################################
+
+output "eks_managed_node_groups" {
+  description = "Map of attribute maps for all EKS managed node groups created"
+  value       = aws_eks_node_group.this
 }
 
-# =============================================================================
-# Addon Outputs
-# =============================================================================
+################################################################################
+# Launch Templates
+################################################################################
 
-output "ebs_csi_driver_role_arn" {
-  description = "IAM role ARN for EBS CSI Driver (when enabled)"
-  value       = var.enable_ebs_csi_driver ? aws_iam_role.ebs_csi_driver[0].arn : null
-}
-
-output "aws_lb_controller_role_arn" {
-  description = "IAM role ARN for AWS Load Balancer Controller (when enabled)"
-  value       = var.enable_aws_lb_controller ? aws_iam_role.aws_lb_controller[0].arn : null
-}
-
-# =============================================================================
-# EKS Capabilities Outputs
-# =============================================================================
-
-output "ack_capability_arn" {
-  description = "ARN of the ACK capability (when enabled)"
-  value       = var.enable_ack_capability ? aws_eks_capability.ack[0].arn : null
-}
-
-output "kro_capability_arn" {
-  description = "ARN of the KRO capability (when enabled)"
-  value       = var.enable_kro_capability ? aws_eks_capability.kro[0].arn : null
-}
-
-output "argocd_capability_arn" {
-  description = "ARN of the ArgoCD capability (when enabled). NOTE: ArgoCD not currently supported - scaffolded for future use."
-  value       = null # ArgoCD capability is commented out (scaffolded)
-}
-
-# =============================================================================
-# Access Entry Outputs
-# =============================================================================
-
-output "ec2_access_entry_created" {
-  description = "Whether an access entry was created for EC2 nodes"
-  value       = local.ec2_needs_access_entry
-}
-
-output "fargate_access_entry_created" {
-  description = "Whether an access entry was created for Fargate pods"
-  value       = local.fargate_needs_access_entry
+output "launch_templates" {
+  description = "Map of launch templates created for node groups"
+  value       = aws_launch_template.node_group
 }

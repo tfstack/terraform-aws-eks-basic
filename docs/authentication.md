@@ -1,108 +1,195 @@
-# EKS Authentication Modes and Access Entry Management
+# EKS Access Entry Management
 
 ## Overview
 
-EKS supports three authentication modes for cluster access:
-
-- `CONFIG_MAP` - Legacy mode using aws-auth ConfigMap (default when no capabilities)
-- `API` - API-only authentication via EKS access entries
-- `API_AND_CONFIG_MAP` - Hybrid mode supporting both methods (required for capabilities)
-
-## Why Access Entries Are Needed
-
-When EKS capabilities (ACK, KRO) are enabled, the cluster automatically switches to `API_AND_CONFIG_MAP` mode. In this mode:
-
-1. **Capabilities** authenticate via the EKS API
-2. **Nodes and pods** need explicit access entries to join the cluster
-3. **Users and roles** need explicit access entries for kubectl/API access
-4. The aws-auth ConfigMap alone is insufficient
+This module uses **EKS Access Entries** as the primary authentication mechanism for cluster access. Access entries provide a modern, API-driven approach to managing Kubernetes RBAC permissions without needing to maintain the legacy aws-auth ConfigMap.
 
 ## Access Entry Types
 
-### Infrastructure Access Entries (Automatic)
+The module implements access entries in two ways:
 
-The module automatically creates access entries for infrastructure resources:
+### 1. Automatic Access Entries (Infrastructure)
 
-- **EC2 Nodes**: `type = "EC2_LINUX"` - Allows worker nodes to join the cluster
-- **Fargate Pods**: `type = "FARGATE_LINUX"` - Allows Fargate pods to schedule
+The module automatically creates access entries for:
 
-These are created automatically when capabilities are enabled.
+- **EC2 Nodes** (`type = "EC2_LINUX"`) - Allows worker nodes to join and communicate with the cluster
+  - Created automatically when `eks_managed_node_groups` is configured
+  - Uses the node IAM role ARN
+  - Grants necessary permissions for kubelet, kube-proxy, and other system components
 
-### User Access Entries (Manual)
+### 2. User-Defined Access Entries
 
-For human users and CI/CD systems to access the cluster, you must explicitly grant access:
-
-- **Type**: `STANDARD` - For IAM users/roles that need cluster access
-- **Policy**: `AmazonEKSClusterAdminPolicy` - Grants full cluster admin permissions
-
-#### Example: Granting Admin Access
+For human users, service accounts, and CI/CD systems, you define access entries using the `access_entries` variable:
 
 ```hcl
-resource "aws_eks_access_entry" "cluster_admins" {
-  for_each = toset(var.cluster_admin_arns)
-
-  cluster_name  = module.eks.cluster_name
-  principal_arn = each.value
-  type          = "STANDARD"
-}
-
-resource "aws_eks_access_policy_association" "cluster_admin_policy" {
-  for_each = toset(var.cluster_admin_arns)
-
-  cluster_name  = module.eks.cluster_name
-  principal_arn = each.value
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-
-  access_scope {
-    type = "cluster"
+access_entries = {
+  admin_user = {
+    principal_arn = "arn:aws:iam::123456789012:user/admin"
+    type          = "STANDARD"
+    policy_associations = {
+      admin = {
+        policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+        access_scope = {
+          type = "cluster"
+        }
+      }
+    }
   }
 
-  depends_on = [aws_eks_access_entry.cluster_admins]
+  developer_role = {
+    principal_arn = "arn:aws:iam::123456789012:role/developer"
+    type          = "STANDARD"
+    policy_associations = {
+      edit = {
+        policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy"
+        access_scope = {
+          type       = "namespace"
+          namespaces = ["dev", "staging"]
+        }
+      }
+    }
+  }
 }
 ```
 
-See the `eks-capabilities` example for a complete implementation.
+## Available EKS Access Policies
 
-## Implementation
+AWS provides several managed access policies:
 
-### Conditional Logic
+- `AmazonEKSClusterAdminPolicy` - Full cluster admin access (cluster-admin)
+- `AmazonEKSAdminPolicy` - Admin access with some limitations
+- `AmazonEKSEditPolicy` - Edit resources in namespaces
+- `AmazonEKSViewPolicy` - Read-only access to resources
 
-Access entries are created when:
+## Implementation Details
 
-- Any capability is enabled (ACK or KRO), OR
-- `cluster_authentication_mode` is explicitly set to `API` or `API_AND_CONFIG_MAP`
+### EC2 Node Access Entries
+
+The module automatically creates access entries for EC2 nodes when node groups are defined:
 
 ```hcl
-local.ec2_needs_access_entry = contains(var.compute_mode, "ec2") && (
-  var.enable_ack_capability ||
-  var.enable_kro_capability ||
-  # var.enable_argocd_capability ||  # ArgoCD not currently supported
-  var.cluster_authentication_mode != "CONFIG_MAP"
-)
+resource "aws_eks_access_entry" "node" {
+  count = length(var.eks_managed_node_groups) > 0 ? 1 : 0
+
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = aws_iam_role.eks_nodes[0].arn
+  type          = "EC2_LINUX"
+}
 ```
 
-### Resource Types
+### User Access Entries
 
-- **EC2 Nodes**: Use `type = "EC2_LINUX"` access entry
-- **Fargate Pods**: Use `type = "FARGATE_LINUX"` access entry
-- **Users/Roles**: Use `type = "STANDARD"` access entry
+User-defined access entries are created from the `access_entries` variable with support for:
 
-### Deployment Order
+- Multiple policy associations per entry
+- Namespace-scoped or cluster-scoped access
+- Custom usernames and Kubernetes groups
 
-1. EKS cluster created
-2. IAM roles for nodes/pods created
-3. Access entries created (if needed)
-4. Node groups/Fargate profiles created
+## Access Scope Types
 
-This ensures nodes have the credentials to authenticate before attempting to join.
+Access policies can be scoped at two levels:
 
-## Backward Compatibility
+1. **Cluster Scope** - Permissions apply across the entire cluster:
 
-| Scenario | Authentication Mode | Access Entries | Result |
-| -------- | ----------------- | -------------- | ------- |
-| No capabilities | CONFIG_MAP | Not created | aws-auth ConfigMap only |
-| With capabilities | API_AND_CONFIG_MAP | Created | Both methods available |
-| Explicit API mode | API | Created | API-only authentication |
+   ```hcl
+   access_scope = {
+     type = "cluster"
+   }
+   ```
+
+2. **Namespace Scope** - Permissions apply only to specific namespaces:
+
+   ```hcl
+   access_scope = {
+     type       = "namespace"
+     namespaces = ["app1", "app2"]
+   }
+   ```
+
+## Examples
+
+### Basic Admin Access
+
+```hcl
+module "eks" {
+  source = "tfstack/eks-basic/aws"
+
+  name               = "my-cluster"
+  kubernetes_version = "1.35"
+  vpc_id             = "vpc-12345678"
+  subnet_ids         = ["subnet-1", "subnet-2"]
+
+  access_entries = {
+    admin = {
+      principal_arn = "arn:aws:iam::123456789012:role/admin-role"
+      type          = "STANDARD"
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Multiple Users with Different Permissions
+
+```hcl
+module "eks" {
+  source = "tfstack/eks-basic/aws"
+
+  name               = "my-cluster"
+  kubernetes_version = "1.35"
+  vpc_id             = "vpc-12345678"
+  subnet_ids         = ["subnet-1", "subnet-2"]
+
+  access_entries = {
+    admin = {
+      principal_arn = "arn:aws:iam::123456789012:role/admin-role"
+      type          = "STANDARD"
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+
+    developers = {
+      principal_arn = "arn:aws:iam::123456789012:role/developer-role"
+      type          = "STANDARD"
+      policy_associations = {
+        edit = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy"
+          access_scope = {
+            type       = "namespace"
+            namespaces = ["development"]
+          }
+        }
+      }
+    }
+
+    viewers = {
+      principal_arn = "arn:aws:iam::123456789012:role/viewer-role"
+      type          = "STANDARD"
+      policy_associations = {
+        view = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+}
+```
 
 ## Troubleshooting
 
@@ -110,32 +197,52 @@ This ensures nodes have the credentials to authenticate before attempting to joi
 
 **Symptom**: `NodeCreationFailure: Instances failed to join the kubernetes cluster`
 
-**Cause**: Cluster is in `API_AND_CONFIG_MAP` mode but node access entries weren't created
+**Cause**: Node access entry was not created or IAM role ARN mismatch
 
-**Solution**: Verify node access entries exist:
+**Solution**:
 
-```bash
-aws eks list-access-entries --cluster-name <cluster-name>
-```
+1. Verify the node access entry exists:
 
-### Fargate Pods Stuck Pending
+   ```bash
+   aws eks list-access-entries --cluster-name <cluster-name>
+   ```
 
-**Symptom**: Fargate pods remain in `Pending` state
+2. Check the node IAM role matches:
 
-**Cause**: Missing Fargate pod access entry in API authentication mode
-
-**Solution**: Check Fargate access entry exists and pod execution role matches
+   ```bash
+   aws eks describe-access-entry \
+     --cluster-name <cluster-name> \
+     --principal-arn <node-role-arn>
+   ```
 
 ### User Cannot Access Cluster
 
-**Symptom**: `Your current IAM principal doesn't have access to Kubernetes objects on this cluster`
+**Symptom**: `Error: You must be logged in to the server (Unauthorized)` or `Your current IAM principal doesn't have access to Kubernetes objects on this cluster`
 
 **Cause**: Your IAM user/role doesn't have an EKS access entry
 
-**Solution**: Add your IAM ARN to the cluster admin access entries:
+**Solution**: Add your IAM ARN to the `access_entries` variable:
+
+```hcl
+access_entries = {
+  my_user = {
+    principal_arn = "arn:aws:iam::123456789012:user/myuser"
+    type          = "STANDARD"
+    policy_associations = {
+      admin = {
+        policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+        access_scope = {
+          type = "cluster"
+        }
+      }
+    }
+  }
+}
+```
+
+Or use AWS CLI:
 
 ```bash
-# Option 1: Via AWS CLI
 aws eks create-access-entry \
   --cluster-name <cluster-name> \
   --principal-arn <your-iam-arn> \
@@ -146,12 +253,35 @@ aws eks associate-access-policy \
   --principal-arn <your-iam-arn> \
   --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
   --access-scope type=cluster
-
-# Option 2: Via Terraform (see eks-capabilities example)
-# Add your ARN to cluster_admin_arns variable and apply
 ```
+
+### Wrong Permissions
+
+**Symptom**: `Error from server (Forbidden): <resource> is forbidden: User <username> cannot <action> resource <resource>`
+
+**Cause**: The access policy doesn't grant sufficient permissions
+
+**Solution**: Update the policy association to a higher permission level or add additional policy associations
+
+## Migration from aws-auth ConfigMap
+
+If you're migrating from aws-auth ConfigMap to access entries:
+
+1. **Inventory existing access**: Document all entries in your aws-auth ConfigMap
+2. **Create access entries**: Convert each entry to the new `access_entries` format
+3. **Test access**: Verify all users can still access the cluster
+4. **Remove aws-auth**: The ConfigMap is no longer needed with access entries
+
+## Best Practices
+
+1. **Principle of Least Privilege**: Grant only the minimum permissions needed
+2. **Use Namespace Scoping**: Limit access to specific namespaces when possible
+3. **Separate Roles**: Use different IAM roles for different permission levels
+4. **Document Access**: Keep a clear record of who has what access
+5. **Regular Audits**: Periodically review access entries and remove unused ones
 
 ## References
 
 - [EKS Access Entries](https://docs.aws.amazon.com/eks/latest/userguide/access-entries.html)
-- [EKS Authentication Modes](https://docs.aws.amazon.com/eks/latest/userguide/grant-k8s-access.html)
+- [EKS Access Policies](https://docs.aws.amazon.com/eks/latest/userguide/access-policies.html)
+- [Grant IAM users access to Kubernetes](https://docs.aws.amazon.com/eks/latest/userguide/grant-k8s-access.html)

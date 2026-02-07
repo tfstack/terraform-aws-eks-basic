@@ -4,93 +4,48 @@ This example demonstrates how to create a basic EKS cluster with EC2 managed nod
 
 ## Usage
 
-1. **Set required variables:**
+1. **Configure variables:**
 
-   Create a `terraform.tfvars` file or set environment variables:
+   Edit `terraform.tfvars` to set your cluster name and access entries:
 
    ```hcl
-   aws_region    = "ap-southeast-2"
-   cluster_name  = "my-eks-cluster"
+   cluster_name = "my-eks-cluster"
+   aws_region   = "ap-southeast-2"
    ```
 
-   Note: This example creates a VPC automatically using the `cloudbuildlab/vpc/aws` module.
-   You don't need to provide `vpc_id` or `subnet_ids` - they are created by the VPC module.
-
-2. **Initialize Terraform:**
+2. **Initialize and apply:**
 
    ```bash
    terraform init
-   ```
-
-3. **Review the plan:**
-
-   ```bash
    terraform plan
-   ```
-
-4. **Apply the configuration:**
-
-   ```bash
    terraform apply
    ```
 
 ## Configuration
 
-### Required Variables
+### Variables
 
 - `cluster_name`: Name of the EKS cluster (default: `cltest`)
 - `aws_region`: AWS region for resources (default: `ap-southeast-2`)
+- `cluster_version`: Kubernetes version (default: `1.35`)
+- `access_entries`: Map of IAM users/roles with cluster access (default: `{}`)
+- `tags`: Tags to apply to all resources
 
-### VPC Configuration
+### VPC
 
-This example automatically creates a VPC with:
+This example automatically creates a VPC with public and private subnets using the `cloudbuildlab/vpc/aws` module.
 
-- 2 availability zones
-- Public and private subnets in each AZ
-- Internet Gateway and NAT Gateway for internet access
-- EKS-optimized tags for subnet discovery
+### Node Groups
 
-### Optional Variables
+Node groups are configured in `main.tf` using the `eks_managed_node_groups` variable. The example includes one node group with 3 nodes.
 
-- `cluster_version`: Kubernetes version (default: `1.34`)
-- `node_instance_types`: EC2 instance types for nodes (default: `["t3.medium"]`)
-- `node_desired_size`: Desired number of nodes (default: `2`)
-- `node_min_size`: Minimum number of nodes (default: `1`)
-- `node_max_size`: Maximum number of nodes (default: `3`)
-- `node_disk_size`: Disk size in GiB (default: `20`)
-- `enable_ebs_csi_driver`: Enable EBS CSI Driver addon (default: `false`)
-- `enable_aws_lb_controller`: Enable AWS Load Balancer Controller (default: `false`)
-- `aws_auth_map_users`: IAM users to add to aws-auth (default: `[]`)
-- `aws_auth_map_roles`: IAM roles to add to aws-auth (default: `[]`)
+### Addons
 
-## Outputs
-
-After applying, you'll get outputs including:
-
-- `cluster_name`: Name of the EKS cluster
-- `cluster_endpoint`: Endpoint URL for the Kubernetes API server
-- `cluster_ca_data`: Base64 encoded certificate authority data
-- `oidc_provider_arn`: ARN of the OIDC provider for IRSA
-- `node_group_id`: ID of the managed node group
-- `node_role_arn`: IAM role ARN for EC2 nodes
+Core addons (CoreDNS, EKS Pod Identity Agent, kube-proxy, VPC-CNI) are configured in `main.tf`.
 
 ## Connecting to the Cluster
 
-After the cluster is created, configure `kubectl`:
-
 ```bash
 aws eks update-kubeconfig --name <cluster_name> --region <aws_region>
-```
-
-Verify connection:
-
-```bash
 kubectl get nodes
 ```
-
-## Next Steps
-
-- Configure AWS Auth to allow IAM users/roles to access the cluster
-- Deploy applications to the cluster
-- Enable additional addons (EBS CSI Driver, Load Balancer Controller) as needed
-- Explore Fargate or AutoMode compute options

@@ -13,69 +13,26 @@ variable "cluster_name" {
 variable "cluster_version" {
   description = "Kubernetes version for the EKS cluster"
   type        = string
-  default     = "1.34"
+  default     = "1.35"
 }
 
-variable "node_instance_types" {
-  description = "List of EC2 instance types for the node group"
-  type        = list(string)
-  default     = ["t3.medium"]
-}
-
-variable "node_desired_size" {
-  description = "Desired number of nodes in the node group"
-  type        = number
-  default     = 2
-}
-
-variable "node_min_size" {
-  description = "Minimum number of nodes in the node group"
-  type        = number
-  default     = 1
-}
-
-variable "node_max_size" {
-  description = "Maximum number of nodes in the node group"
-  type        = number
-  default     = 3
-}
-
-variable "node_disk_size" {
-  description = "Disk size in GiB for worker nodes"
-  type        = number
-  default     = 20
-}
-
-variable "enable_ebs_csi_driver" {
-  description = "Whether to enable the EBS CSI Driver addon"
-  type        = bool
-  default     = false
-}
-
-variable "enable_aws_lb_controller" {
-  description = "Whether to enable the AWS Load Balancer Controller"
-  type        = bool
-  default     = false
-}
-
-variable "aws_auth_map_users" {
-  description = "List of IAM users to add to aws-auth ConfigMap"
-  type = list(object({
-    userarn  = string
-    username = string
-    groups   = list(string)
+variable "access_entries" {
+  description = "Map of access entries to add to the cluster"
+  type = map(object({
+    kubernetes_groups = optional(list(string))
+    principal_arn     = string
+    type              = optional(string, "STANDARD")
+    user_name         = optional(string)
+    tags              = optional(map(string), {})
+    policy_associations = optional(map(object({
+      policy_arn = string
+      access_scope = object({
+        namespaces = optional(list(string))
+        type       = string
+      })
+    })), {})
   }))
-  default = []
-}
-
-variable "aws_auth_map_roles" {
-  description = "List of IAM roles to add to aws-auth ConfigMap"
-  type = list(object({
-    rolearn  = string
-    username = string
-    groups   = list(string)
-  }))
-  default = []
+  default = {}
 }
 
 variable "tags" {

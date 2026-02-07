@@ -25,12 +25,6 @@ output "cluster_endpoint" {
   value       = module.eks.cluster_endpoint
 }
 
-output "cluster_ca_data" {
-  description = "Base64 encoded certificate data required to communicate with the cluster"
-  value       = module.eks.cluster_ca_data
-  sensitive   = true
-}
-
 output "cluster_version" {
   description = "Kubernetes version of the EKS cluster"
   value       = module.eks.cluster_version
@@ -39,14 +33,4 @@ output "cluster_version" {
 output "oidc_provider_arn" {
   description = "ARN of the EKS OIDC provider"
   value       = module.eks.oidc_provider_arn
-}
-
-output "node_group_id" {
-  description = "ID of the EKS node group"
-  value       = module.eks.node_group_id
-}
-
-output "node_role_arn" {
-  description = "IAM role ARN for EC2 nodes"
-  value       = module.eks.node_role_arn
 }
