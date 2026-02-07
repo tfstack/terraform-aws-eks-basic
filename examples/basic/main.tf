@@ -69,29 +69,53 @@ module "vpc" {
 module "eks" {
   source = "../../"
 
-  cluster_name    = var.cluster_name
-  cluster_version = var.cluster_version
-  vpc_id          = module.vpc.vpc_id
-  subnet_ids      = concat(module.vpc.public_subnet_ids, module.vpc.private_subnet_ids)
-  node_subnet_ids = module.vpc.private_subnet_ids
+  name               = var.cluster_name
+  kubernetes_version = var.cluster_version
+  vpc_id             = module.vpc.vpc_id
+  subnet_ids         = concat(module.vpc.public_subnet_ids, module.vpc.private_subnet_ids)
 
-  # Use EC2 compute mode (default)
-  compute_mode = ["ec2"]
+  endpoint_public_access = true
 
-  # EC2 Node Group Configuration
-  node_instance_types = var.node_instance_types
-  node_desired_size   = var.node_desired_size
-  node_min_size       = var.node_min_size
-  node_max_size       = var.node_max_size
-  node_disk_size      = var.node_disk_size
+  access_entries = var.access_entries
 
-  # Optional: Enable addons
-  enable_ebs_csi_driver    = var.enable_ebs_csi_driver
-  enable_aws_lb_controller = var.enable_aws_lb_controller
+  addons = {
+    coredns = {
+      addon_version = "v1.13.2-eksbuild.1"
+    }
+    eks-pod-identity-agent = {
+      before_compute = true
+      addon_version  = "v1.3.10-eksbuild.2"
+    }
+    kube-proxy = {
+      addon_version = "v1.35.0-eksbuild.2"
+    }
+    vpc-cni = {
+      before_compute = true
+      addon_version  = "v1.21.1-eksbuild.3"
+      configuration_values = jsonencode({
+        enableNetworkPolicy = "true"
+        nodeAgent = {
+          enablePolicyEventLogs = "true"
+        }
+      })
+    }
+  }
 
-  # Optional: AWS Auth configuration
-  aws_auth_map_users = var.aws_auth_map_users
-  aws_auth_map_roles = var.aws_auth_map_roles
+  eks_managed_node_groups = {
+    one = {
+      name           = "node-group-1"
+      ami_type       = "AL2023_x86_64_STANDARD"
+      instance_types = ["t3a.large"]
 
-  tags = var.tags
+      min_size     = 3
+      max_size     = 3
+      desired_size = 3
+
+      metadata_options = {
+        http_endpoint               = "enabled"
+        http_tokens                 = "required"
+        http_put_response_hop_limit = 1
+      }
+    }
+  }
 }

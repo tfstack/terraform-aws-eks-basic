@@ -2,11 +2,10 @@ run "eks_cluster_creation" {
   command = plan
 
   variables {
-    cluster_name    = "test-eks-cluster"
-    cluster_version = "1.28"
-    vpc_id          = "vpc-12345678"
-    subnet_ids      = ["subnet-12345678", "subnet-87654321"]
-    compute_mode    = ["ec2"]
+    name               = "test-eks-cluster"
+    kubernetes_version = "1.35"
+    vpc_id             = "vpc-12345678"
+    subnet_ids         = ["subnet-12345678", "subnet-87654321"]
   }
 
   assert {
@@ -15,8 +14,8 @@ run "eks_cluster_creation" {
   }
 
   assert {
-    condition     = aws_eks_cluster.this.version == "1.28"
-    error_message = "EKS cluster version should be '1.28'"
+    condition     = aws_eks_cluster.this.version == "1.35"
+    error_message = "EKS cluster version should be '1.35'"
   }
 
   assert {
@@ -29,41 +28,47 @@ run "eks_node_group_config" {
   command = plan
 
   variables {
-    cluster_name        = "test-eks-cluster"
-    cluster_version     = "1.28"
-    vpc_id              = "vpc-12345678"
-    subnet_ids          = ["subnet-12345678", "subnet-87654321"]
-    compute_mode        = ["ec2"]
-    node_instance_types = ["t3.medium", "t3.large"]
-    node_desired_size   = 3
-    node_min_size       = 2
-    node_max_size       = 5
-    node_disk_size      = 50
+    name               = "test-eks-cluster"
+    kubernetes_version = "1.35"
+    vpc_id             = "vpc-12345678"
+    subnet_ids         = ["subnet-12345678", "subnet-87654321"]
+    eks_managed_node_groups = {
+      test = {
+        name           = "test-node-group"
+        ami_type       = "AL2023_x86_64_STANDARD"
+        instance_types = ["t3.medium", "t3.large"]
+        min_size       = 2
+        max_size       = 5
+        desired_size   = 3
+        disk_size      = 50
+        subnet_ids     = ["subnet-12345678", "subnet-87654321"]
+      }
+    }
   }
 
   assert {
-    condition     = length(aws_eks_node_group.default) == 1
-    error_message = "Node group should be created when EC2 mode is enabled"
+    condition     = length(aws_eks_node_group.this) == 1
+    error_message = "Node group should be created when eks_managed_node_groups is configured"
   }
 
   assert {
-    condition     = aws_eks_node_group.default[0].scaling_config[0].desired_size == 3
+    condition     = aws_eks_node_group.this["test"].scaling_config[0].desired_size == 3
     error_message = "Node group desired size should be 3"
   }
 
   assert {
-    condition     = aws_eks_node_group.default[0].scaling_config[0].min_size == 2
+    condition     = aws_eks_node_group.this["test"].scaling_config[0].min_size == 2
     error_message = "Node group min size should be 2"
   }
 
   assert {
-    condition     = aws_eks_node_group.default[0].scaling_config[0].max_size == 5
+    condition     = aws_eks_node_group.this["test"].scaling_config[0].max_size == 5
     error_message = "Node group max size should be 5"
   }
 
   assert {
-    condition     = aws_eks_node_group.default[0].disk_size == 50
-    error_message = "Node group disk size should be 50"
+    condition     = length(aws_launch_template.node_group) == 1
+    error_message = "Launch template should be created for node group"
   }
 }
 
@@ -71,26 +76,28 @@ run "eks_iam_roles" {
   command = plan
 
   variables {
-    cluster_name    = "test-eks-cluster"
-    cluster_version = "1.28"
-    vpc_id          = "vpc-12345678"
-    subnet_ids      = ["subnet-12345678", "subnet-87654321"]
-    compute_mode    = ["ec2"]
+    name               = "test-eks-cluster"
+    kubernetes_version = "1.35"
+    vpc_id             = "vpc-12345678"
+    subnet_ids         = ["subnet-12345678", "subnet-87654321"]
+    eks_managed_node_groups = {
+      test = {
+        name           = "test-node-group"
+        ami_type       = "AL2023_x86_64_STANDARD"
+        instance_types = ["t3.medium"]
+        subnet_ids     = ["subnet-12345678"]
+      }
+    }
   }
 
   assert {
-    condition     = aws_iam_role.eks_cluster.name == "test-eks-cluster-eks-cluster-role"
-    error_message = "Cluster IAM role name should be correct"
+    condition     = length(aws_iam_role.this) == 1
+    error_message = "Cluster IAM role should be created"
   }
 
   assert {
     condition     = length(aws_iam_role.eks_nodes) == 1
-    error_message = "Node IAM role should be created when EC2 mode is enabled"
-  }
-
-  assert {
-    condition     = aws_iam_role.eks_nodes[0].name == "test-eks-cluster-eks-nodes-role"
-    error_message = "Node IAM role name should be correct"
+    error_message = "Node IAM role should be created when eks_managed_node_groups is configured"
   }
 }
 
@@ -98,82 +105,108 @@ run "eks_oidc_provider" {
   command = plan
 
   variables {
-    cluster_name    = "test-eks-cluster"
-    cluster_version = "1.28"
-    vpc_id          = "vpc-12345678"
-    subnet_ids      = ["subnet-12345678", "subnet-87654321"]
-    compute_mode    = ["ec2"]
+    name               = "test-eks-cluster"
+    kubernetes_version = "1.35"
+    vpc_id             = "vpc-12345678"
+    subnet_ids         = ["subnet-12345678", "subnet-87654321"]
   }
 
   assert {
-    condition     = contains(aws_iam_openid_connect_provider.eks.client_id_list, "sts.amazonaws.com")
+    condition     = contains(aws_iam_openid_connect_provider.oidc_provider[0].client_id_list, "sts.amazonaws.com")
     error_message = "OIDC provider client ID should include 'sts.amazonaws.com'"
   }
 }
 
-run "eks_addons_optional" {
+run "eks_addons" {
   command = plan
 
   variables {
-    cluster_name             = "test-eks-cluster"
-    cluster_version          = "1.28"
-    vpc_id                   = "vpc-12345678"
-    subnet_ids               = ["subnet-12345678", "subnet-87654321"]
-    compute_mode             = ["ec2"]
-    enable_ebs_csi_driver    = true
-    enable_aws_lb_controller = true
-  }
-
-  assert {
-    condition     = length(aws_iam_role.ebs_csi_driver) == 1
-    error_message = "EBS CSI Driver IAM role should be created when enabled"
-  }
-
-  assert {
-    condition     = length(aws_eks_addon.ebs_csi_driver) == 1
-    error_message = "EBS CSI Driver addon should be created when enabled"
-  }
-
-  assert {
-    condition     = length(aws_iam_role.aws_lb_controller) == 1
-    error_message = "AWS Load Balancer Controller IAM role should be created when enabled"
-  }
-
-  assert {
-    condition     = length(kubernetes_service_account.aws_lb_controller) == 1
-    error_message = "AWS Load Balancer Controller service account should be created when enabled"
-  }
-}
-
-run "eks_fargate_mode" {
-  command = plan
-
-  variables {
-    cluster_name    = "test-eks-cluster"
-    cluster_version = "1.28"
-    vpc_id          = "vpc-12345678"
-    subnet_ids      = ["subnet-12345678", "subnet-87654321"]
-    compute_mode    = ["fargate"]
-    fargate_profiles = {
-      default = {
-        subnet_ids = ["subnet-12345678"]
-        selectors = [
-          {
-            namespace = "default"
-            labels    = {}
-          }
-        ]
+    name               = "test-eks-cluster"
+    kubernetes_version = "1.35"
+    vpc_id             = "vpc-12345678"
+    subnet_ids         = ["subnet-12345678", "subnet-87654321"]
+    addons = {
+      coredns = {
+        addon_version = "v1.13.2-eksbuild.1"
+      }
+      vpc-cni = {
+        before_compute = true
+        addon_version  = "v1.21.1-eksbuild.3"
       }
     }
   }
 
   assert {
-    condition     = length(aws_iam_role.eks_fargate) == 1
-    error_message = "Fargate IAM role should be created when Fargate mode is enabled"
+    condition     = length(aws_eks_addon.this) == 1
+    error_message = "CoreDNS addon should be created"
   }
 
   assert {
-    condition     = length(aws_eks_fargate_profile.default) == 1
-    error_message = "Fargate profile should be created when Fargate mode is enabled"
+    condition     = length(aws_eks_addon.before_compute) == 1
+    error_message = "VPC CNI addon should be created as before_compute"
+  }
+}
+
+run "eks_access_entries" {
+  command = plan
+
+  variables {
+    name               = "test-eks-cluster"
+    kubernetes_version = "1.35"
+    vpc_id             = "vpc-12345678"
+    subnet_ids         = ["subnet-12345678", "subnet-87654321"]
+    access_entries = {
+      admin = {
+        principal_arn = "arn:aws:iam::123456789012:role/admin-role"
+        type          = "STANDARD"
+        policy_associations = {
+          admin = {
+            policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+            access_scope = {
+              type = "cluster"
+            }
+          }
+        }
+      }
+    }
+  }
+
+  assert {
+    condition     = length(aws_eks_access_entry.this) == 1
+    error_message = "Access entry should be created when access_entries is configured"
+  }
+
+  assert {
+    condition     = length(aws_eks_access_policy_association.this) == 1
+    error_message = "Access policy association should be created"
+  }
+}
+
+run "eks_capabilities" {
+  command = plan
+
+  variables {
+    name               = "test-eks-cluster"
+    kubernetes_version = "1.35"
+    vpc_id             = "vpc-12345678"
+    subnet_ids         = ["subnet-12345678", "subnet-87654321"]
+    capabilities = {
+      ack = {
+        iam_policy_arns = {
+          s3 = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        }
+      }
+      kro = {}
+    }
+  }
+
+  assert {
+    condition     = length(aws_eks_capability.this) == 2
+    error_message = "Two capabilities (ACK and KRO) should be created"
+  }
+
+  assert {
+    condition     = length(aws_iam_role.capability) == 2
+    error_message = "IAM roles for capabilities should be created"
   }
 }

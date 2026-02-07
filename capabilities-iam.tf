@@ -1,11 +1,14 @@
-# =============================================================================
+################################################################################
 # EKS Capabilities IAM Roles
 # IAM roles required for EKS Capabilities (ACK, KRO, ArgoCD)
-# =============================================================================
+################################################################################
 
-# ACK Capability Role
-data "aws_iam_policy_document" "ack_capability_assume_role" {
-  count = var.enable_ack_capability ? 1 : 0
+# IAM assume role policy documents for capabilities
+data "aws_iam_policy_document" "capability_assume_role" {
+  for_each = {
+    for k, v in var.capabilities : k => v
+    if try(v.role_arn, null) == null
+  }
 
   statement {
     effect = "Allow"
@@ -22,87 +25,30 @@ data "aws_iam_policy_document" "ack_capability_assume_role" {
   }
 }
 
-resource "aws_iam_role" "ack_capability" {
-  count = var.enable_ack_capability ? 1 : 0
-
-  name               = var.ack_capability_role_arn != null ? null : "${var.cluster_name}-ack-capability-role"
-  name_prefix        = var.ack_capability_role_arn != null ? null : null
-  assume_role_policy = data.aws_iam_policy_document.ack_capability_assume_role[0].json
-  tags               = var.tags
-}
-
-# Attach IAM policies to ACK capability role
-resource "aws_iam_role_policy_attachment" "ack_capability" {
-  for_each = var.enable_ack_capability ? var.ack_capability_iam_policy_arns : {}
-
-  role       = aws_iam_role.ack_capability[0].name
-  policy_arn = each.value
-}
-
-# KRO Capability Role
-data "aws_iam_policy_document" "kro_capability_assume_role" {
-  count = var.enable_kro_capability ? 1 : 0
-
-  statement {
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["capabilities.eks.amazonaws.com"]
-    }
-
-    actions = [
-      "sts:AssumeRole",
-      "sts:TagSession"
-    ]
+# IAM roles for capabilities (only created when role_arn is not provided)
+resource "aws_iam_role" "capability" {
+  for_each = {
+    for k, v in var.capabilities : k => v
+    if try(v.role_arn, null) == null
   }
+
+  name               = "${var.name}-${each.key}-capability-role"
+  assume_role_policy = data.aws_iam_policy_document.capability_assume_role[each.key].json
+
+  tags = var.tags
 }
 
-resource "aws_iam_role" "kro_capability" {
-  count = var.enable_kro_capability ? 1 : 0
+# Attach IAM policies to capability roles (primarily for ACK)
+resource "aws_iam_role_policy_attachment" "capability" {
+  for_each = merge([
+    for cap_key, cap_val in var.capabilities : {
+      for pol_key, pol_arn in try(cap_val.iam_policy_arns, {}) : "${cap_key}_${pol_key}" => {
+        role       = aws_iam_role.capability[cap_key].name
+        policy_arn = pol_arn
+      }
+    }
+  ]...)
 
-  name               = var.kro_capability_role_arn != null ? null : "${var.cluster_name}-kro-capability-role"
-  name_prefix        = var.kro_capability_role_arn != null ? null : null
-  assume_role_policy = data.aws_iam_policy_document.kro_capability_assume_role[0].json
-  tags               = var.tags
+  role       = each.value.role
+  policy_arn = each.value.policy_arn
 }
-
-# Note: KRO capability roles don't require managed policies - AWS manages permissions internally
-
-# =============================================================================
-# ArgoCD Capability Role (SCAFFOLDED - NOT SUPPORTED YET)
-# =============================================================================
-# ArgoCD capability requires AWS Identity Center configuration
-# This is scaffolded for future implementation but not currently supported
-# Uncomment and configure Identity Center before enabling
-# =============================================================================
-
-# data "aws_iam_policy_document" "argocd_capability_assume_role" {
-#   count = var.enable_argocd_capability ? 1 : 0
-#
-#   statement {
-#     effect = "Allow"
-#
-#     principals {
-#       type        = "Service"
-#       identifiers = ["capabilities.eks.amazonaws.com"]
-#     }
-#
-#     actions = [
-#       "sts:AssumeRole",
-#       "sts:TagSession"
-#     ]
-#   }
-# }
-#
-# resource "aws_iam_role" "argocd_capability" {
-#   count = var.enable_argocd_capability ? 1 : 0
-#
-#   name               = var.argocd_capability_role_arn != null ? null : "${var.cluster_name}-argocd-capability-role"
-#   name_prefix        = var.argocd_capability_role_arn != null ? null : null
-#   assume_role_policy = data.aws_iam_policy_document.argocd_capability_assume_role[0].json
-#   tags               = var.tags
-# }
-#
-# # Note: ArgoCD capability roles don't require managed policies - AWS manages permissions internally
-# # ArgoCD also requires configuration which should be provided via the capability resource

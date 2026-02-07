@@ -1,23 +1,17 @@
 # terraform-aws-eks-basic
 
-A basic Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Service) clusters. Currently supports EC2 and Fargate; AutoMode is scaffolded only (no AutoMode-specific resources yet).
+> **⚠️ Note**: This module has been revamped and currently supports **EC2 managed node groups only**. Fargate and AutoMode support are not available in this version.
+
+A Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Service) clusters with EC2 managed node groups.
 
 ## Features
 
-- **Multi-Compute Support**: Supports EC2 and Fargate; AutoMode is scaffolded
-- **EC2 Managed Node Groups**: Full support for EC2 managed node groups with auto-scaling
-- **Fargate Profiles**: Supported via `fargate_profiles` and Fargate IAM role creation
-- **AutoMode**: Placeholder wiring only; no AutoMode-specific resources yet
+- **EC2 Managed Node Groups**: Full support with customizable launch templates and auto-scaling
+- **Modern EKS Access Entries**: Native EKS authentication via access entries (no aws-auth ConfigMap)
 - **IRSA Support**: OIDC provider setup for IAM Roles for Service Accounts
-- **EKS Capabilities**: Managed ACK and KRO capabilities (optional, default: disabled)
-  - **ACK**: AWS Controllers for Kubernetes - create AWS resources via Kubernetes manifests
-  - **KRO**: Kube Resource Orchestrator - platform engineering abstractions
-  - **ArgoCD**: Scaffolded only (requires AWS Identity Center setup)
-- **Access Management**: Automatic EKS access entry creation for cluster admins when capabilities are enabled
-- **Optional Addons**:
-  - EBS CSI Driver (optional, default: disabled)
-  - AWS Load Balancer Controller (optional, default: disabled)
-- **Comprehensive Testing**: Includes Terraform test suite
+- **EKS Addons**: Flexible addon configuration (CoreDNS, VPC CNI, Kube-proxy, Pod Identity Agent, EBS CSI Driver)
+- **EKS Capabilities**: Support for ACK, KRO, and ArgoCD capabilities
+- **Security**: KMS encryption, IMDSv2 enforcement, security groups
 
 ## Prerequisites
 
@@ -31,26 +25,65 @@ A basic Terraform module for creating and managing Amazon EKS (Elastic Kubernete
 
 ## Usage
 
-### Basic Example (EC2)
+### Basic Example
 
 ```hcl
 module "eks" {
   source = "tfstack/eks-basic/aws"
 
-  cluster_name    = "my-eks-cluster"
-  cluster_version = "1.28"
-  vpc_id          = "vpc-12345678"
-  subnet_ids      = ["subnet-12345678", "subnet-87654321"]
+  name               = "my-eks-cluster"
+  kubernetes_version = "1.35"
+  vpc_id             = "vpc-12345678"
+  subnet_ids         = ["subnet-12345678", "subnet-87654321"]
 
-  # EC2 compute mode (default)
-  compute_mode = ["ec2"]
+  endpoint_public_access = true
 
-  # Node group configuration
-  node_instance_types = ["t3.medium"]
-  node_desired_size   = 2
-  node_min_size       = 1
-  node_max_size       = 3
-  node_disk_size      = 20
+  # Configure access entries for cluster access
+  access_entries = {
+    admin = {
+      principal_arn = "arn:aws:iam::123456789012:role/admin-role"
+      type          = "STANDARD"
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+
+  # Configure EKS addons
+  addons = {
+    coredns = {
+      addon_version = "v1.13.2-eksbuild.1"
+    }
+    kube-proxy = {
+      addon_version = "v1.35.0-eksbuild.2"
+    }
+    vpc-cni = {
+      before_compute = true
+      addon_version  = "v1.21.1-eksbuild.3"
+    }
+    eks-pod-identity-agent = {
+      before_compute = true
+      addon_version  = "v1.3.10-eksbuild.2"
+    }
+  }
+
+  # Configure managed node groups
+  eks_managed_node_groups = {
+    default = {
+      name           = "node-group-1"
+      ami_type       = "AL2023_x86_64_STANDARD"
+      instance_types = ["t3.medium"]
+      min_size       = 1
+      max_size       = 3
+      desired_size   = 2
+      disk_size      = 20
+    }
+  }
 
   tags = {
     Environment = "production"
@@ -59,141 +92,11 @@ module "eks" {
 }
 ```
 
-### With Optional Addons
-
-```hcl
-module "eks" {
-  source = "tfstack/eks-basic/aws"
-
-  cluster_name    = "my-eks-cluster"
-  cluster_version = "1.28"
-  vpc_id          = "vpc-12345678"
-  subnet_ids      = ["subnet-12345678", "subnet-87654321"]
-
-  compute_mode = ["ec2"]
-
-  # Enable optional addons
-  enable_ebs_csi_driver   = true
-  enable_aws_lb_controller = true
-
-  tags = {
-    Environment = "production"
-  }
-}
-```
-
-### With EKS Capabilities
-
-```hcl
-module "eks" {
-  source = "tfstack/eks-basic/aws"
-
-  cluster_name    = "my-eks-cluster"
-  cluster_version = "1.28"
-  vpc_id          = "vpc-12345678"
-  subnet_ids      = ["subnet-12345678", "subnet-87654321"]
-
-  compute_mode = ["ec2"]
-
-  # Enable EKS Capabilities for platform engineering
-  enable_ack_capability    = true  # AWS Controllers for Kubernetes
-  enable_kro_capability    = true  # Kube Resource Orchestrator
-  # enable_argocd_capability = false  # Not supported yet - requires Identity Center
-
-  # Grant cluster admin access to IAM users/roles
-  cluster_admin_arns = [
-    "arn:aws:iam::123456789012:user/admin-user",
-    "arn:aws:iam::123456789012:role/admin-role"
-  ]
-
-  tags = {
-    Environment = "production"
-  }
-}
-```
-
-**Note**: When capabilities are enabled, the cluster uses `API_AND_CONFIG_MAP` authentication mode. You must specify `cluster_admin_arns` to grant access to IAM users/roles for kubectl access.
-
-  tags = {
-    Environment = "production"
-  }
-}
-
-```
-
-### Fargate Example
-
-```hcl
-module "eks" {
-  source = "tfstack/eks-basic/aws"
-
-  cluster_name    = "my-eks-cluster"
-  cluster_version = "1.28"
-  vpc_id          = "vpc-12345678"
-  subnet_ids      = ["subnet-12345678", "subnet-87654321"]
-
-  # Fargate compute mode
-  compute_mode = ["fargate"]
-
-  fargate_profiles = {
-    default = {
-      subnet_ids = ["subnet-12345678"]
-      selectors = [
-        {
-          namespace = "default"
-          labels    = {}
-        }
-      ]
-    }
-  }
-
-  tags = {
-    Environment = "production"
-  }
-}
-```
-
-### Multiple Compute Modes
-
-```hcl
-module "eks" {
-  source = "tfstack/eks-basic/aws"
-
-  cluster_name    = "my-eks-cluster"
-  cluster_version = "1.28"
-  vpc_id          = "vpc-12345678"
-  subnet_ids      = ["subnet-12345678", "subnet-87654321"]
-
-  # Use both EC2 and Fargate
-  compute_mode = ["ec2", "fargate"]
-
-  # EC2 configuration
-  node_instance_types = ["t3.medium"]
-  node_desired_size   = 2
-
-  # Fargate configuration
-  fargate_profiles = {
-    default = {
-      subnet_ids = ["subnet-12345678"]
-      selectors = [
-        {
-          namespace = "default"
-        }
-      ]
-    }
-  }
-
-  tags = {
-    Environment = "production"
-  }
-}
-```
-
 ## Examples
 
 - **[examples/basic](examples/basic/)** - Basic EKS cluster with EC2 node groups
-- **[examples/ebs-web-app](examples/ebs-web-app/)** - Web application with EBS persistent volume
-- **[examples/eks-capabilities](examples/eks-capabilities/)** - Complete platform engineering example with ACK and KRO capabilities (ArgoCD scaffolded but not supported)
+- **[examples/ebs-web-app](examples/ebs-web-app/)** - EKS cluster with node groups and VPC setup
+- **[examples/eks-capabilities](examples/eks-capabilities/)** - Platform engineering example with EKS capabilities
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
@@ -366,21 +269,21 @@ terraform test
 
 ```plaintext
 terraform-aws-eks-basic/
-├── main.tf              # Core EKS cluster, IAM roles, OIDC provider
-├── ec2.tf              # EC2 managed node groups
-├── fargate.tf          # Fargate profiles
-├── automode.tf         # AutoMode configuration
-├── capabilities.tf     # EKS Capabilities (ACK, KRO, ArgoCD)
-├── capabilities-iam.tf # IAM roles for EKS Capabilities
-├── addons.tf           # Optional addons (EBS CSI, ALB Controller)
-├── variables.tf        # Input variables
-├── outputs.tf          # Output values
-├── versions.tf         # Provider version constraints
-├── README.md           # This file
-├── tests/
-│   └── eks_test.tftest.hcl  # Test suite
+├── main.tf              # Core EKS cluster, node groups, addons, OIDC provider
+├── access-entries.tf    # EKS access entries for authentication
+├── capabilities.tf      # EKS Capabilities (ACK, KRO, ArgoCD)
+├── capabilities-iam.tf  # IAM roles for EKS Capabilities
+├── addons-iam.tf        # IAM roles for addons (EBS CSI, etc)
+├── locals.tf            # Local values and computed configurations
+├── cluster-auth.tf      # Cluster authentication data source
+├── variables.tf         # Input variables
+├── outputs.tf           # Output values
+├── versions.tf          # Provider version constraints
+├── README.md            # This file
 └── examples/
-    └── basic/          # Basic usage example
+    ├── basic/           # Basic usage example
+    ├── ebs-web-app/     # Example with VPC and node groups
+    └── eks-capabilities/ # Platform engineering with capabilities
 ```
 
 ## License
