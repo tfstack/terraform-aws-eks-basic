@@ -44,6 +44,23 @@ variable "public_access_cidrs" {
   default     = ["0.0.0.0/0"]
 }
 
+variable "cluster_ip_family" {
+  description = "IP family for the EKS cluster. Valid values: ipv4, ipv6"
+  type        = string
+  default     = "ipv4"
+
+  validation {
+    condition     = contains(["ipv4", "ipv6"], var.cluster_ip_family)
+    error_message = "cluster_ip_family must be either 'ipv4' or 'ipv6'"
+  }
+}
+
+variable "service_ipv4_cidr" {
+  description = "IPv4 CIDR block for Kubernetes services. Required for all clusters. Must not overlap with VPC CIDR. If not provided, EKS will auto-assign."
+  type        = string
+  default     = null
+}
+
 ################################################################################
 # Logging Configuration
 ################################################################################
@@ -169,6 +186,12 @@ variable "addons" {
     service_account_role_arn    = optional(string)
   }))
   default = {}
+}
+
+variable "enable_aws_load_balancer_controller" {
+  description = "Whether to create IAM role for AWS Load Balancer Controller (IRSA)"
+  type        = bool
+  default     = false
 }
 
 ################################################################################
