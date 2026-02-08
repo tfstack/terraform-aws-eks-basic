@@ -265,6 +265,12 @@ resource "aws_eks_cluster" "this" {
     public_access_cidrs     = var.public_access_cidrs
   }
 
+  kubernetes_network_config {
+    ip_family         = var.cluster_ip_family
+    service_ipv4_cidr = var.service_ipv4_cidr
+    # service_ipv6_cidr is automatically assigned by AWS when ip_family = "ipv6"
+  }
+
   enabled_cluster_log_types = var.enabled_cluster_log_types
 
   access_config {
@@ -423,6 +429,20 @@ resource "aws_security_group_rule" "node_cidr" {
   region            = var.region
 }
 
+# IPv6 egress rule for node security group (when IPv6 is enabled)
+resource "aws_security_group_rule" "node_ipv6_egress" {
+  count = var.cluster_ip_family == "ipv6" ? 1 : 0
+
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  ipv6_cidr_blocks  = ["::/0"]
+  security_group_id = aws_security_group.node[0].id
+  region            = var.region
+  description       = "Allow all IPv6 egress"
+}
+
 resource "aws_security_group_rule" "node_sg" {
   for_each = {
     ingress_cluster_10251_webhook = {
@@ -542,7 +562,9 @@ resource "time_sleep" "this" {
     endpoint                   = aws_eks_cluster.this.endpoint
     kubernetes_version         = aws_eks_cluster.this.version
     name                       = aws_eks_cluster.this.name
-    service_cidr               = aws_eks_cluster.this.kubernetes_network_config[0].service_ipv4_cidr
+    service_ipv4_cidr          = try(aws_eks_cluster.this.kubernetes_network_config[0].service_ipv4_cidr, null)
+    service_ipv6_cidr          = try(aws_eks_cluster.this.kubernetes_network_config[0].service_ipv6_cidr, null)
+    ip_family                  = try(aws_eks_cluster.this.kubernetes_network_config[0].ip_family, null)
   }
 
   depends_on = [

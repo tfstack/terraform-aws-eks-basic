@@ -48,9 +48,19 @@ output "cluster_oidc_issuer_url" {
   value       = try(aws_eks_cluster.this.identity[0].oidc[0].issuer, null)
 }
 
+output "cluster_ip_family" {
+  description = "The IP family used by the cluster (e.g. ipv4 or ipv6)"
+  value       = try(aws_eks_cluster.this.kubernetes_network_config[0].ip_family, null)
+}
+
 output "cluster_service_cidr" {
-  description = "The CIDR block where Kubernetes pod and service IP addresses are assigned from"
+  description = "The IPv4 CIDR block where Kubernetes pod and service IP addresses are assigned from"
   value       = try(aws_eks_cluster.this.kubernetes_network_config[0].service_ipv4_cidr, null)
+}
+
+output "cluster_service_ipv6_cidr" {
+  description = "The IPv6 CIDR block where Kubernetes pod and service IP addresses are assigned from (when ip_family is ipv6)"
+  value       = try(aws_eks_cluster.this.kubernetes_network_config[0].service_ipv6_cidr, null)
 }
 
 output "cluster_primary_security_group_id" {

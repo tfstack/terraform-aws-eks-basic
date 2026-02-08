@@ -7,10 +7,12 @@ A Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Serv
 ## Features
 
 - **EC2 Managed Node Groups**: Full support with customizable launch templates and auto-scaling
+- **Dual-Stack Support**: IPv4 and IPv6 cluster support (IPv6 service CIDR auto-assigned by AWS)
 - **Modern EKS Access Entries**: Native EKS authentication via access entries (no aws-auth ConfigMap)
 - **IRSA Support**: OIDC provider setup for IAM Roles for Service Accounts
 - **EKS Addons**: Flexible addon configuration (CoreDNS, VPC CNI, Kube-proxy, Pod Identity Agent, EBS CSI Driver)
 - **EKS Capabilities**: Support for ACK, KRO, and ArgoCD capabilities
+- **AWS Load Balancer Controller**: Optional IAM role creation for AWS Load Balancer Controller (IRSA)
 - **Security**: KMS encryption, IMDSv2 enforcement, security groups
 
 ## Prerequisites

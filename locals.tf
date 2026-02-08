@@ -60,7 +60,7 @@ locals {
           cluster_name               = aws_eks_cluster.this.name
           cluster_endpoint           = aws_eks_cluster.this.endpoint
           cluster_auth_base64        = aws_eks_cluster.this.certificate_authority[0].data
-          cluster_service_cidr       = aws_eks_cluster.this.kubernetes_network_config[0].service_ipv4_cidr
+          cluster_service_cidr       = try(aws_eks_cluster.this.kubernetes_network_config[0].service_ipv4_cidr, null)
         }),
         "\n",
         "--//--"
