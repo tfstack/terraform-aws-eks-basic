@@ -232,3 +232,27 @@ run "eks_aws_lb_controller_iam" {
     error_message = "Two policy attachments should be created (ELB and EC2)"
   }
 }
+
+run "eks_ipv6_configuration" {
+  command = plan
+
+  variables {
+    name               = "test-eks-cluster"
+    kubernetes_version = "1.35"
+    vpc_id             = "vpc-12345678"
+    subnet_ids         = ["subnet-12345678", "subnet-87654321"]
+    cluster_ip_family  = "ipv6"
+    service_ipv4_cidr  = "10.100.0.0/16"
+    # service_ipv6_cidr is automatically assigned by AWS, not configurable
+  }
+
+  assert {
+    condition     = aws_eks_cluster.this.kubernetes_network_config[0].ip_family == "ipv6"
+    error_message = "Cluster IP family should be set to ipv6"
+  }
+
+  assert {
+    condition     = length(aws_security_group_rule.node_ipv6_egress) == 1
+    error_message = "IPv6 egress security group rule should be created when ip_family is ipv6"
+  }
+}
