@@ -171,6 +171,12 @@ variable "addons" {
   default = {}
 }
 
+variable "enable_aws_load_balancer_controller" {
+  description = "Whether to create IAM role for AWS Load Balancer Controller (IRSA)"
+  type        = bool
+  default     = false
+}
+
 ################################################################################
 # Capabilities Configuration
 ################################################################################

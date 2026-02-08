@@ -210,3 +210,25 @@ run "eks_capabilities" {
     error_message = "IAM roles for capabilities should be created"
   }
 }
+
+run "eks_aws_lb_controller_iam" {
+  command = plan
+
+  variables {
+    name                                = "test-eks-cluster"
+    kubernetes_version                  = "1.35"
+    vpc_id                              = "vpc-12345678"
+    subnet_ids                          = ["subnet-12345678", "subnet-87654321"]
+    enable_aws_load_balancer_controller = true
+  }
+
+  assert {
+    condition     = length(aws_iam_role.aws_lb_controller) == 1
+    error_message = "AWS Load Balancer Controller IAM role should be created when enabled"
+  }
+
+  assert {
+    condition     = length(aws_iam_role_policy_attachment.aws_lb_controller) == 2
+    error_message = "Two policy attachments should be created (ELB and EC2)"
+  }
+}

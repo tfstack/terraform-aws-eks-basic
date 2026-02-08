@@ -110,6 +110,11 @@ output "node_iam_role_name" {
   value       = try(aws_iam_role.eks_nodes[0].name, null)
 }
 
+output "aws_load_balancer_controller_role_arn" {
+  description = "IAM role ARN for AWS Load Balancer Controller (when enabled)"
+  value       = try(aws_iam_role.aws_lb_controller[0].arn, null)
+}
+
 ################################################################################
 # OIDC Provider
 ################################################################################
