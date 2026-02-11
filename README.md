@@ -14,6 +14,7 @@ A Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Serv
 - **EKS Capabilities**: Support for ACK, KRO, and ArgoCD capabilities
 - **AWS Load Balancer Controller**: Optional IAM role creation for AWS Load Balancer Controller (IRSA)
 - **Security**: KMS encryption, IMDSv2 enforcement, security groups
+- **CloudWatch Log Group**: Optional log group for EKS control plane logs; set `cloudwatch_log_group_force_destroy = true` to allow the log group to be deleted on `terraform destroy` (default is to protect it).
 
 ## Prerequisites
 
