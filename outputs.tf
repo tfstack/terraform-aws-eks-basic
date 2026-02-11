@@ -159,12 +159,12 @@ output "access_policy_associations" {
 
 output "cloudwatch_log_group_name" {
   description = "Name of cloudwatch log group created"
-  value       = try(aws_cloudwatch_log_group.this[0].name, null)
+  value       = coalesce(try(aws_cloudwatch_log_group.this_allow_destroy[0].name, null), try(aws_cloudwatch_log_group.this_prevent_destroy[0].name, null))
 }
 
 output "cloudwatch_log_group_arn" {
   description = "Arn of cloudwatch log group created"
-  value       = try(aws_cloudwatch_log_group.this[0].arn, null)
+  value       = coalesce(try(aws_cloudwatch_log_group.this_allow_destroy[0].arn, null), try(aws_cloudwatch_log_group.this_prevent_destroy[0].arn, null))
 }
 
 ################################################################################

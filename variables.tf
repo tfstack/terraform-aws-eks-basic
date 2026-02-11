@@ -101,6 +101,12 @@ variable "cloudwatch_log_group_tags" {
   default     = {}
 }
 
+variable "cloudwatch_log_group_force_destroy" {
+  description = "When true, allow the CloudWatch log group to be deleted on terraform destroy. When false, protect it with lifecycle { prevent_destroy = true }."
+  type        = bool
+  default     = false
+}
+
 variable "region" {
   description = "AWS region for CloudWatch log group"
   type        = string
