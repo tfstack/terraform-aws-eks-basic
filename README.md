@@ -128,7 +128,8 @@ No modules.
 
 | Name | Type |
 |------|------|
-| [aws_cloudwatch_log_group.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
+| [aws_cloudwatch_log_group.this_allow_destroy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
+| [aws_cloudwatch_log_group.this_prevent_destroy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
 | [aws_eks_access_entry.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_entry) | resource |
 | [aws_eks_access_policy_association.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_policy_association) | resource |
 | [aws_eks_addon.before_compute](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
@@ -182,6 +183,7 @@ No modules.
 | <a name="input_addons"></a> [addons](#input\_addons) | Map of EKS addons to enable | <pre>map(object({<br/>    addon_version               = optional(string)<br/>    before_compute              = optional(bool, false)<br/>    configuration_values        = optional(string)<br/>    resolve_conflicts_on_create = optional(string, "OVERWRITE")<br/>    resolve_conflicts_on_update = optional(string, "OVERWRITE")<br/>    service_account_role_arn    = optional(string)<br/>  }))</pre> | `{}` | no |
 | <a name="input_capabilities"></a> [capabilities](#input\_capabilities) | Map of EKS capabilities to enable. Valid keys: ack, kro, argocd | <pre>map(object({<br/>    role_arn                  = optional(string)<br/>    iam_policy_arns           = optional(map(string), {})<br/>    configuration             = optional(string)<br/>    delete_propagation_policy = optional(string, "RETAIN")<br/>  }))</pre> | `{}` | no |
 | <a name="input_cloudwatch_log_group_class"></a> [cloudwatch\_log\_group\_class](#input\_cloudwatch\_log\_group\_class) | Specifies the log class of the log group. Valid values are: STANDARD or INFREQUENT\_ACCESS | `string` | `null` | no |
+| <a name="input_cloudwatch_log_group_force_destroy"></a> [cloudwatch\_log\_group\_force\_destroy](#input\_cloudwatch\_log\_group\_force\_destroy) | When true, allow the CloudWatch log group to be deleted on terraform destroy. When false, protect it with lifecycle { prevent\_destroy = true }. | `bool` | `false` | no |
 | <a name="input_cloudwatch_log_group_kms_key_id"></a> [cloudwatch\_log\_group\_kms\_key\_id](#input\_cloudwatch\_log\_group\_kms\_key\_id) | The ARN of the KMS Key to use when encrypting log data | `string` | `null` | no |
 | <a name="input_cloudwatch_log_group_retention_in_days"></a> [cloudwatch\_log\_group\_retention\_in\_days](#input\_cloudwatch\_log\_group\_retention\_in\_days) | Number of days to retain log events in the CloudWatch log group | `number` | `14` | no |
 | <a name="input_cloudwatch_log_group_tags"></a> [cloudwatch\_log\_group\_tags](#input\_cloudwatch\_log\_group\_tags) | Additional tags to apply to the CloudWatch log group | `map(string)` | `{}` | no |
