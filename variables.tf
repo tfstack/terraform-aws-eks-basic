@@ -200,6 +200,12 @@ variable "enable_aws_load_balancer_controller" {
   default     = false
 }
 
+variable "enable_external_dns" {
+  description = "Whether to create IAM role for ExternalDNS (IRSA)"
+  type        = bool
+  default     = false
+}
+
 ################################################################################
 # Capabilities Configuration
 ################################################################################

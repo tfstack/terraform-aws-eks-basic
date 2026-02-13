@@ -125,6 +125,11 @@ output "aws_load_balancer_controller_role_arn" {
   value       = try(aws_iam_role.aws_lb_controller[0].arn, null)
 }
 
+output "external_dns_role_arn" {
+  description = "IAM role ARN for ExternalDNS (when enabled)"
+  value       = try(aws_iam_role.external_dns[0].arn, null)
+}
+
 ################################################################################
 # OIDC Provider
 ################################################################################
