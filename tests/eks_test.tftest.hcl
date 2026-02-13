@@ -233,6 +233,28 @@ run "eks_aws_lb_controller_iam" {
   }
 }
 
+run "eks_external_dns_iam" {
+  command = plan
+
+  variables {
+    name                = "test-eks-cluster"
+    kubernetes_version  = "1.35"
+    vpc_id              = "vpc-12345678"
+    subnet_ids          = ["subnet-12345678", "subnet-87654321"]
+    enable_external_dns = true
+  }
+
+  assert {
+    condition     = length(aws_iam_role.external_dns) == 1
+    error_message = "ExternalDNS IAM role should be created when enabled"
+  }
+
+  assert {
+    condition     = length(aws_iam_role_policy.external_dns) == 1
+    error_message = "ExternalDNS IAM role policy should be created"
+  }
+}
+
 run "eks_ipv6_configuration" {
   command = plan
 
