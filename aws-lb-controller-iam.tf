@@ -55,3 +55,55 @@ resource "aws_iam_role_policy_attachment" "aws_lb_controller" {
   role       = aws_iam_role.aws_lb_controller[0].name
   policy_arn = each.value
 }
+
+# IAM policy document for AWS Load Balancer Controller WAF, WAF Regional, and Shield permissions
+data "aws_iam_policy_document" "aws_lb_controller_waf" {
+  count = var.enable_aws_load_balancer_controller ? 1 : 0
+
+  statement {
+    sid    = "WAFv2Permissions"
+    effect = "Allow"
+    actions = [
+      "wafv2:GetWebACL",
+      "wafv2:GetWebACLForResource",
+      "wafv2:AssociateWebACL",
+      "wafv2:DisassociateWebACL",
+      "wafv2:ListWebACLs"
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "WAFRegionalPermissions"
+    effect = "Allow"
+    actions = [
+      "waf-regional:GetWebACL",
+      "waf-regional:GetWebACLForResource",
+      "waf-regional:AssociateWebACL",
+      "waf-regional:DisassociateWebACL",
+      "waf-regional:ListWebACLs"
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "ShieldPermissions"
+    effect = "Allow"
+    actions = [
+      "shield:GetSubscriptionState",
+      "shield:DescribeProtection",
+      "shield:CreateProtection",
+      "shield:DeleteProtection"
+    ]
+    resources = ["*"]
+  }
+}
+
+# IAM policy for AWS Load Balancer Controller WAF permissions
+resource "aws_iam_role_policy" "aws_lb_controller_waf" {
+  count = var.enable_aws_load_balancer_controller ? 1 : 0
+
+  name   = "${var.name}-aws-lb-controller-waf-policy"
+  role   = aws_iam_role.aws_lb_controller[0].id
+  policy = data.aws_iam_policy_document.aws_lb_controller_waf[0].json
+}

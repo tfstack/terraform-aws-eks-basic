@@ -231,6 +231,11 @@ run "eks_aws_lb_controller_iam" {
     condition     = length(aws_iam_role_policy_attachment.aws_lb_controller) == 2
     error_message = "Two policy attachments should be created (ELB and EC2)"
   }
+
+  assert {
+    condition     = length(aws_iam_role_policy.aws_lb_controller_waf) == 1
+    error_message = "AWS Load Balancer Controller WAF policy should be created when enabled"
+  }
 }
 
 run "eks_external_dns_iam" {
