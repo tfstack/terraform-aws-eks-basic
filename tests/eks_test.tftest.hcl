@@ -228,13 +228,13 @@ run "eks_aws_lb_controller_iam" {
   }
 
   assert {
-    condition     = length(aws_iam_role_policy_attachment.aws_lb_controller) == 2
-    error_message = "Two policy attachments should be created (ELB and EC2)"
+    condition     = length(aws_iam_policy.aws_lb_controller) == 1
+    error_message = "AWS Load Balancer Controller least-privilege policy should be created"
   }
 
   assert {
-    condition     = length(aws_iam_role_policy.aws_lb_controller_waf) == 1
-    error_message = "AWS Load Balancer Controller WAF policy should be created when enabled"
+    condition     = length(aws_iam_role_policy_attachment.aws_lb_controller) == 1
+    error_message = "Single policy attachment should be created for ALB controller"
   }
 }
 
@@ -257,6 +257,66 @@ run "eks_external_dns_iam" {
   assert {
     condition     = length(aws_iam_role_policy.external_dns) == 1
     error_message = "ExternalDNS IAM role policy should be created"
+  }
+}
+
+run "eks_pod_identity" {
+  command = plan
+
+  variables {
+    name                                       = "test-eks-cluster"
+    kubernetes_version                         = "1.35"
+    vpc_id                                     = "vpc-12345678"
+    subnet_ids                                 = ["subnet-12345678", "subnet-87654321"]
+    enable_aws_load_balancer_controller        = true
+    aws_load_balancer_controller_identity_type = "pod_identity"
+    enable_external_dns                        = true
+    external_dns_identity_type                 = "pod_identity"
+    addon_identity_type                        = "pod_identity"
+    addons = {
+      eks-pod-identity-agent = {
+        before_compute = true
+        addon_version  = "v1.3.10-eksbuild.2"
+      }
+      aws-ebs-csi-driver = {
+        addon_version = "v1.38.0-eksbuild.1"
+      }
+    }
+    addon_service_accounts = {
+      "aws-ebs-csi-driver" = {
+        namespace = "kube-system"
+        name      = "ebs-csi-controller-sa"
+      }
+    }
+    eks_managed_node_groups = {
+      default = {
+        name           = "node-group-1"
+        instance_types = ["t3.medium"]
+        min_size       = 1
+        max_size       = 2
+        desired_size   = 1
+      }
+    }
+  }
+
+  assert {
+    condition     = length(aws_iam_role.aws_lb_controller) == 1
+    error_message = "ALB controller IAM role should be created when using Pod Identity"
+  }
+
+  assert {
+    condition     = length(aws_eks_pod_identity_association.aws_lb_controller) == 1
+    error_message = "Pod Identity association for ALB controller should be created"
+  }
+
+  assert {
+    condition     = length(aws_eks_pod_identity_association.external_dns) == 1
+    error_message = "Pod Identity association for External DNS should be created"
+  }
+
+  assert {
+    condition     = length(aws_eks_pod_identity_association.addon) == 1
+    error_message = "Pod Identity association for EBS CSI addon should be created"
   }
 }
 

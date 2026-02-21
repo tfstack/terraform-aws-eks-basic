@@ -3,7 +3,7 @@
 # IAM role required for AWS Load Balancer Controller Helm chart
 ################################################################################
 
-# IAM assume role policy document for AWS Load Balancer Controller
+# IAM assume role policy document for AWS Load Balancer Controller (IRSA)
 data "aws_iam_policy_document" "aws_lb_controller_assume_role" {
   count = var.enable_aws_load_balancer_controller ? 1 : 0
 
@@ -31,18 +31,47 @@ data "aws_iam_policy_document" "aws_lb_controller_assume_role" {
   }
 }
 
-# IAM role for AWS Load Balancer Controller
+# IAM assume role policy document for AWS Load Balancer Controller (EKS Pod Identity)
+data "aws_iam_policy_document" "aws_lb_controller_assume_role_pod_identity" {
+  count = var.enable_aws_load_balancer_controller ? 1 : 0
+
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["pods.eks.amazonaws.com"]
+    }
+
+    actions = [
+      "sts:AssumeRole",
+      "sts:TagSession"
+    ]
+  }
+}
+
+# IAM role for AWS Load Balancer Controller (IRSA or Pod Identity per aws_load_balancer_controller_identity_type)
 resource "aws_iam_role" "aws_lb_controller" {
   count = var.enable_aws_load_balancer_controller ? 1 : 0
 
   name               = "${var.name}-aws-lb-controller-role"
-  assume_role_policy = data.aws_iam_policy_document.aws_lb_controller_assume_role[0].json
+  assume_role_policy = var.aws_load_balancer_controller_identity_type == "pod_identity" ? data.aws_iam_policy_document.aws_lb_controller_assume_role_pod_identity[0].json : data.aws_iam_policy_document.aws_lb_controller_assume_role[0].json
 
   tags = var.tags
 
   depends_on = [
     aws_iam_openid_connect_provider.oidc_provider
   ]
+}
+
+# EKS Pod Identity association for AWS Load Balancer Controller (when using Pod Identity)
+resource "aws_eks_pod_identity_association" "aws_lb_controller" {
+  count = var.enable_aws_load_balancer_controller && var.aws_load_balancer_controller_identity_type == "pod_identity" ? 1 : 0
+
+  cluster_name    = aws_eks_cluster.this.name
+  namespace       = var.aws_lb_controller_namespace
+  service_account = var.aws_lb_controller_service_account
+  role_arn        = aws_iam_role.aws_lb_controller[0].arn
 }
 
 # Attach AWS managed policy for Elastic Load Balancing

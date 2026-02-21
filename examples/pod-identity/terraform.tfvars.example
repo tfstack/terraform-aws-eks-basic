@@ -1,0 +1,4 @@
+# External DNS (Terraform-managed deployment)
+external_dns_domain_filter  = "dev.example.com"
+external_dns_txt_owner_id   = "my-eks-cluster"
+external_dns_aws_zone_type  = "private"
