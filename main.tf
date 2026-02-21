@@ -6,16 +6,7 @@ data "aws_region" "current" {}
 
 data "aws_partition" "current" {}
 
-# data "aws_caller_identity" "current" {
-#   count = var.enable_cluster_creator_admin_permissions ? 1 : 0
-# }
-
 data "aws_caller_identity" "current" {}
-
-# data "aws_iam_session_context" "current" {
-#   count = var.enable_cluster_creator_admin_permissions ? 1 : 0
-#   arn   = try(data.aws_caller_identity.current[0].arn, "")
-# }
 
 ################################################################################
 # CloudWatch Log Group
@@ -780,7 +771,8 @@ resource "aws_eks_addon" "before_compute" {
 
   depends_on = [
     time_sleep.this,
-    aws_iam_role.addon
+    aws_iam_role.addon,
+    aws_eks_pod_identity_association.addon
   ]
 }
 
@@ -804,6 +796,7 @@ resource "aws_eks_addon" "this" {
   depends_on = [
     time_sleep.this,
     aws_eks_node_group.this,
-    aws_iam_role.addon
+    aws_iam_role.addon,
+    aws_eks_pod_identity_association.addon
   ]
 }

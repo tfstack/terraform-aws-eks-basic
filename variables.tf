@@ -201,9 +201,79 @@ variable "enable_aws_load_balancer_controller" {
 }
 
 variable "enable_external_dns" {
-  description = "Whether to create IAM role for ExternalDNS (IRSA)"
+  description = "Whether to create IAM role for ExternalDNS (IRSA or Pod Identity per external_dns_identity_type)"
   type        = bool
   default     = false
+}
+
+################################################################################
+# Pod Identity Configuration (alternative to IRSA per component)
+################################################################################
+
+variable "aws_load_balancer_controller_identity_type" {
+  description = "Identity type for AWS Load Balancer Controller. Use 'pod_identity' to create Pod Identity association; requires eks-pod-identity-agent addon."
+  type        = string
+  default     = "irsa"
+
+  validation {
+    condition     = contains(["irsa", "pod_identity"], var.aws_load_balancer_controller_identity_type)
+    error_message = "aws_load_balancer_controller_identity_type must be 'irsa' or 'pod_identity'."
+  }
+}
+
+variable "aws_lb_controller_namespace" {
+  description = "Kubernetes namespace for AWS Load Balancer Controller service account (Pod Identity). Used when aws_load_balancer_controller_identity_type = 'pod_identity'."
+  type        = string
+  default     = "aws-load-balancer-controller"
+}
+
+variable "aws_lb_controller_service_account" {
+  description = "Kubernetes service account name for AWS Load Balancer Controller (Pod Identity)."
+  type        = string
+  default     = "aws-load-balancer-controller"
+}
+
+variable "external_dns_identity_type" {
+  description = "Identity type for External DNS. Use 'pod_identity' to create Pod Identity association; requires eks-pod-identity-agent addon."
+  type        = string
+  default     = "irsa"
+
+  validation {
+    condition     = contains(["irsa", "pod_identity"], var.external_dns_identity_type)
+    error_message = "external_dns_identity_type must be 'irsa' or 'pod_identity'."
+  }
+}
+
+variable "external_dns_namespace" {
+  description = "Kubernetes namespace for External DNS service account (Pod Identity). Used when external_dns_identity_type = 'pod_identity'."
+  type        = string
+  default     = "external-dns"
+}
+
+variable "external_dns_service_account" {
+  description = "Kubernetes service account name for External DNS (Pod Identity)."
+  type        = string
+  default     = "external-dns"
+}
+
+variable "addon_identity_type" {
+  description = "Identity type for addons that need IAM (e.g. EBS CSI driver). Use 'pod_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon and addon_service_accounts."
+  type        = string
+  default     = "irsa"
+
+  validation {
+    condition     = contains(["irsa", "pod_identity"], var.addon_identity_type)
+    error_message = "addon_identity_type must be 'irsa' or 'pod_identity'."
+  }
+}
+
+variable "addon_service_accounts" {
+  description = "Map of addon name to namespace and service account for Pod Identity. Required when addon_identity_type = 'pod_identity' for addons that need a role (e.g. aws-ebs-csi-driver)."
+  type = map(object({
+    namespace = string
+    name      = string
+  }))
+  default = {}
 }
 
 ################################################################################

@@ -9,10 +9,10 @@ A Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Serv
 - **EC2 Managed Node Groups**: Full support with customizable launch templates and auto-scaling
 - **Dual-Stack Support**: IPv4 and IPv6 cluster support (IPv6 service CIDR auto-assigned by AWS)
 - **Modern EKS Access Entries**: Native EKS authentication via access entries (no aws-auth ConfigMap)
-- **IRSA Support**: OIDC provider setup for IAM Roles for Service Accounts
+- **IRSA and Pod Identity**: OIDC provider for IAM Roles for Service Accounts (IRSA); optional EKS Pod Identity per component (ALB controller, External DNS, addons). Choose per component via `*_identity_type` variables (`"irsa"` or `"pod_identity"`). When using Pod Identity, enable the **eks-pod-identity-agent** addon.
 - **EKS Addons**: Flexible addon configuration (CoreDNS, VPC CNI, Kube-proxy, Pod Identity Agent, EBS CSI Driver)
 - **EKS Capabilities**: Support for ACK, KRO, and ArgoCD capabilities
-- **AWS Load Balancer Controller**: Optional IAM role creation for AWS Load Balancer Controller (IRSA). The IRSA role expects the controller's service account in the **`aws-load-balancer-controller`** namespace (e.g. when using the [official Helm chart](https://kubernetes-sigs.github.io/aws-load-balancer-controller/), deploy into that namespace or set the Helm chart namespace accordingly).
+- **AWS Load Balancer Controller**: Optional IAM role creation (IRSA or Pod Identity). Expects the controller's service account in the **`aws-load-balancer-controller`** namespace (e.g. [official Helm chart](https://kubernetes-sigs.github.io/aws-load-balancer-controller/)).
 - **Security**: KMS encryption, IMDSv2 enforcement, security groups
 - **CloudWatch Log Group**: Optional log group for EKS control plane logs; set `cloudwatch_log_group_force_destroy = true` to allow the log group to be deleted on `terraform destroy` (default is to protect it).
 
@@ -95,9 +95,39 @@ module "eks" {
 }
 ```
 
+## Pod Identity usage
+
+When using Pod Identity for any component, set the **eks-pod-identity-agent** addon in `addons` and set the component's identity type to `"pod_identity"`:
+
+```hcl
+addons = {
+  # Required when using Pod Identity for any component
+  eks-pod-identity-agent = {
+    before_compute = true
+    addon_version  = "v1.3.10-eksbuild.2"
+  }
+  aws-ebs-csi-driver = { ... }
+}
+
+# Example: ALB controller and EBS CSI via Pod Identity
+aws_load_balancer_controller_identity_type = "pod_identity"
+enable_aws_load_balancer_controller         = true
+
+addon_identity_type   = "pod_identity"
+addon_service_accounts = {
+  "aws-ebs-csi-driver" = {
+    namespace = "kube-system"
+    name      = "ebs-csi-controller-sa"
+  }
+}
+```
+
+See **[examples/pod-identity](examples/pod-identity/)** for a full example.
+
 ## Examples
 
 - **[examples/basic](examples/basic/)** - Basic EKS cluster with EC2 node groups
+- **[examples/pod-identity](examples/pod-identity/)** - EKS cluster using Pod Identity for ALB controller, External DNS, and EBS CSI addon
 - **[examples/ebs-web-app](examples/ebs-web-app/)** - EKS cluster with node groups and VPC setup
 - **[examples/eks-capabilities](examples/eks-capabilities/)** - Platform engineering example with EKS capabilities
 
@@ -136,6 +166,9 @@ No modules.
 | [aws_eks_addon.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
 | [aws_eks_capability.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_capability) | resource |
 | [aws_eks_cluster.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster) | resource |
+| [aws_eks_pod_identity_association.addon](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
+| [aws_eks_pod_identity_association.aws_lb_controller](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
+| [aws_eks_pod_identity_association.external_dns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_node_group.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_node_group) | resource |
 | [aws_iam_instance_profile.eks_nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_instance_profile) | resource |
 | [aws_iam_openid_connect_provider.oidc_provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_openid_connect_provider) | resource |
@@ -202,7 +235,15 @@ No modules.
 | <a name="input_eks_managed_node_groups"></a> [eks\_managed\_node\_groups](#input\_eks\_managed\_node\_groups) | Map of EKS managed node group configurations | <pre>map(object({<br/>    name                       = optional(string)<br/>    ami_type                   = optional(string, "AL2023_x86_64_STANDARD")<br/>    instance_types             = optional(list(string), ["t3.medium"])<br/>    min_size                   = optional(number, 1)<br/>    max_size                   = optional(number, 3)<br/>    desired_size               = optional(number, 2)<br/>    disk_size                  = optional(number, 20)<br/>    subnet_ids                 = optional(list(string))<br/>    enable_bootstrap_user_data = optional(bool, true)<br/>    metadata_options = optional(object({<br/>      http_endpoint               = optional(string, "enabled")<br/>      http_tokens                 = optional(string, "required")<br/>      http_put_response_hop_limit = optional(number, 1)<br/>    }))<br/>    labels = optional(map(string), {})<br/>    tags   = optional(map(string), {})<br/>  }))</pre> | `{}` | no |
 | <a name="input_enable_aws_load_balancer_controller"></a> [enable\_aws\_load\_balancer\_controller](#input\_enable\_aws\_load\_balancer\_controller) | Whether to create IAM role for AWS Load Balancer Controller (IRSA) | `bool` | `false` | no |
 | <a name="input_enable_cluster_creator_admin_permissions"></a> [enable\_cluster\_creator\_admin\_permissions](#input\_enable\_cluster\_creator\_admin\_permissions) | Indicates whether or not to add the cluster creator (the identity used by Terraform) as an administrator via access entry | `bool` | `false` | no |
-| <a name="input_enable_external_dns"></a> [enable\_external\_dns](#input\_enable\_external\_dns) | Whether to create IAM role for ExternalDNS (IRSA) | `bool` | `false` | no |
+| <a name="input_enable_external_dns"></a> [enable\_external\_dns](#input\_enable\_external\_dns) | Whether to create IAM role for ExternalDNS (IRSA or Pod Identity per external_dns_identity_type) | `bool` | `false` | no |
+| <a name="input_aws_load_balancer_controller_identity_type"></a> [aws\_load\_balancer\_controller\_identity\_type](#input\_aws\_load\_balancer\_controller\_identity\_type) | Identity type for ALB controller: `irsa` or `pod_identity`. | `string` | `"irsa"` | no |
+| <a name="input_aws_lb_controller_namespace"></a> [aws\_lb\_controller\_namespace](#input\_aws\_lb\_controller\_namespace) | Kubernetes namespace for ALB controller service account (Pod Identity). | `string` | `"aws-load-balancer-controller"` | no |
+| <a name="input_aws_lb_controller_service_account"></a> [aws\_lb\_controller\_service\_account](#input\_aws\_lb\_controller\_service\_account) | Kubernetes service account name for ALB controller (Pod Identity). | `string` | `"aws-load-balancer-controller"` | no |
+| <a name="input_external_dns_identity_type"></a> [external\_dns\_identity\_type](#input\_external\_dns\_identity\_type) | Identity type for External DNS: `irsa` or `pod_identity`. | `string` | `"irsa"` | no |
+| <a name="input_external_dns_namespace"></a> [external\_dns\_namespace](#input\_external\_dns\_namespace) | Kubernetes namespace for External DNS (Pod Identity). | `string` | `"external-dns"` | no |
+| <a name="input_external_dns_service_account"></a> [external\_dns\_service\_account](#input\_external\_dns\_service\_account) | Kubernetes service account name for External DNS (Pod Identity). | `string` | `"external-dns"` | no |
+| <a name="input_addon_identity_type"></a> [addon\_identity\_type](#input\_addon\_identity\_type) | Identity type for addons that need IAM: `irsa` or `pod_identity`. | `string` | `"irsa"` | no |
+| <a name="input_addon_service_accounts"></a> [addon\_service\_accounts](#input\_addon\_service\_accounts) | Map of addon name to namespace and service account for Pod Identity. Required when addon_identity_type = `pod_identity`. | <pre>map(object({<br/>    namespace = string<br/>    name      = string<br/>  }))</pre> | `{}` | no |
 | <a name="input_enabled_cluster_log_types"></a> [enabled\_cluster\_log\_types](#input\_enabled\_cluster\_log\_types) | List of control plane logging types to enable | `list(string)` | <pre>[<br/>  "api",<br/>  "audit",<br/>  "authenticator"<br/>]</pre> | no |
 | <a name="input_endpoint_public_access"></a> [endpoint\_public\_access](#input\_endpoint\_public\_access) | Whether the Amazon EKS public API server endpoint is enabled | `bool` | `true` | no |
 | <a name="input_kubernetes_version"></a> [kubernetes\_version](#input\_kubernetes\_version) | Kubernetes version to use for the EKS cluster | `string` | n/a | yes |
@@ -242,6 +283,7 @@ No modules.
 | <a name="output_cluster_version"></a> [cluster\_version](#output\_cluster\_version) | The Kubernetes version for the cluster |
 | <a name="output_eks_managed_node_groups"></a> [eks\_managed\_node\_groups](#output\_eks\_managed\_node\_groups) | Map of attribute maps for all EKS managed node groups created |
 | <a name="output_external_dns_role_arn"></a> [external\_dns\_role\_arn](#output\_external\_dns\_role\_arn) | IAM role ARN for ExternalDNS (when enabled) |
+| <a name="output_cluster_pod_identity_associations"></a> [cluster\_pod\_identity\_associations](#output\_cluster\_pod\_identity\_associations) | Map of EKS Pod Identity associations when using Pod Identity |
 | <a name="output_kms_key_arn"></a> [kms\_key\_arn](#output\_kms\_key\_arn) | The Amazon Resource Name (ARN) of the key |
 | <a name="output_kms_key_id"></a> [kms\_key\_id](#output\_kms\_key\_id) | The globally unique identifier for the key |
 | <a name="output_launch_templates"></a> [launch\_templates](#output\_launch\_templates) | Map of launch templates created for node groups |

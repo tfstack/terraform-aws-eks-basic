@@ -130,6 +130,15 @@ output "external_dns_role_arn" {
   value       = try(aws_iam_role.external_dns[0].arn, null)
 }
 
+output "cluster_pod_identity_associations" {
+  description = "Map of EKS Pod Identity associations (addon, ALB controller, External DNS) when using Pod Identity"
+  value = merge(
+    aws_eks_pod_identity_association.addon,
+    length(aws_eks_pod_identity_association.aws_lb_controller) > 0 ? { "aws_lb_controller" = aws_eks_pod_identity_association.aws_lb_controller[0] } : {},
+    length(aws_eks_pod_identity_association.external_dns) > 0 ? { "external_dns" = aws_eks_pod_identity_association.external_dns[0] } : {}
+  )
+}
+
 ################################################################################
 # OIDC Provider
 ################################################################################
