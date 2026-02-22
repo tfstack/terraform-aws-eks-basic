@@ -120,6 +120,9 @@ addon_service_accounts = {
     name      = "ebs-csi-controller-sa"
   }
 }
+
+# Alternatively, use the dedicated EBS CSI switch (Pod Identity only; no second role from addon path)
+# enable_ebs_csi_driver = true
 ```
 
 See **[examples/pod-identity](examples/pod-identity/)** for a full example.
@@ -279,7 +282,7 @@ No modules.
 | <a name="output_cluster_name"></a> [cluster\_name](#output\_cluster\_name) | The name of the EKS cluster |
 | <a name="output_cluster_oidc_issuer_url"></a> [cluster\_oidc\_issuer\_url](#output\_cluster\_oidc\_issuer\_url) | The URL on the EKS cluster for the OpenID Connect identity provider |
 | <a name="output_cluster_platform_version"></a> [cluster\_platform\_version](#output\_cluster\_platform\_version) | Platform version for the cluster |
-| <a name="output_cluster_pod_identity_associations"></a> [cluster\_pod\_identity\_associations](#output\_cluster\_pod\_identity\_associations) | Map of EKS Pod Identity associations (addon, ALB controller, External DNS) when using Pod Identity |
+| <a name="output_cluster_pod_identity_associations"></a> [cluster\_pod\_identity\_associations](#output\_cluster\_pod\_identity\_associations) | Map of EKS Pod Identity associations (addon, ALB controller, External DNS, EBS CSI driver) when using Pod Identity |
 | <a name="output_cluster_primary_security_group_id"></a> [cluster\_primary\_security\_group\_id](#output\_cluster\_primary\_security\_group\_id) | Cluster security group that was created by Amazon EKS for the cluster |
 | <a name="output_cluster_security_group_id"></a> [cluster\_security\_group\_id](#output\_cluster\_security\_group\_id) | ID of the cluster security group |
 | <a name="output_cluster_service_cidr"></a> [cluster\_service\_cidr](#output\_cluster\_service\_cidr) | The IPv4 CIDR block where Kubernetes pod and service IP addresses are assigned from |
@@ -287,6 +290,7 @@ No modules.
 | <a name="output_cluster_version"></a> [cluster\_version](#output\_cluster\_version) | The Kubernetes version for the cluster |
 | <a name="output_eks_managed_node_groups"></a> [eks\_managed\_node\_groups](#output\_eks\_managed\_node\_groups) | Map of attribute maps for all EKS managed node groups created |
 | <a name="output_external_dns_role_arn"></a> [external\_dns\_role\_arn](#output\_external\_dns\_role\_arn) | IAM role ARN for ExternalDNS (when enabled) |
+| <a name="output_ebs_csi_driver_role_arn"></a> [ebs\_csi\_driver\_role\_arn](#output\_ebs\_csi\_driver\_role\_arn) | IAM role ARN for EBS CSI driver (when enabled) |
 | <a name="output_kms_key_arn"></a> [kms\_key\_arn](#output\_kms\_key\_arn) | The Amazon Resource Name (ARN) of the key |
 | <a name="output_kms_key_id"></a> [kms\_key\_id](#output\_kms\_key\_id) | The globally unique identifier for the key |
 | <a name="output_launch_templates"></a> [launch\_templates](#output\_launch\_templates) | Map of launch templates created for node groups |

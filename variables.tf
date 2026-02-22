@@ -200,6 +200,12 @@ variable "enable_aws_load_balancer_controller" {
   default     = false
 }
 
+variable "enable_ebs_csi_driver" {
+  description = "Whether to create IAM role and Pod Identity association for EBS CSI driver (Pod Identity association)"
+  type        = bool
+  default     = false
+}
+
 variable "enable_external_dns" {
   description = "Whether to create IAM role for ExternalDNS (IRSA or Pod Identity per external_dns_identity_type)"
   type        = bool
@@ -254,6 +260,18 @@ variable "external_dns_service_account" {
   description = "Kubernetes service account name for External DNS (Pod Identity)."
   type        = string
   default     = "external-dns"
+}
+
+variable "ebs_csi_driver_namespace" {
+  description = "Kubernetes namespace for EBS CSI driver service account (Pod Identity association)"
+  type        = string
+  default     = "aws-ebs-csi-driver"
+}
+
+variable "ebs_csi_driver_service_account" {
+  description = "Kubernetes service account name for EBS CSI driver (Pod Identity association)"
+  type        = string
+  default     = "ebs-csi-controller-sa"
 }
 
 variable "addon_identity_type" {
