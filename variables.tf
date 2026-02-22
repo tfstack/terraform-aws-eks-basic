@@ -201,7 +201,7 @@ variable "enable_aws_load_balancer_controller" {
 }
 
 variable "enable_ebs_csi_driver" {
-  description = "Whether to create IAM role and Pod Identity association for EBS CSI driver (Pod Identity association)"
+  description = "Whether to create IAM role for EBS CSI driver (IRSA or Pod Identity per ebs_csi_driver_identity_type)"
   type        = bool
   default     = false
 }
@@ -262,14 +262,25 @@ variable "external_dns_service_account" {
   default     = "external-dns"
 }
 
+variable "ebs_csi_driver_identity_type" {
+  description = "Identity type for EBS CSI driver. Use 'pod_identity' to create Pod Identity association; requires eks-pod-identity-agent addon."
+  type        = string
+  default     = "irsa"
+
+  validation {
+    condition     = contains(["irsa", "pod_identity"], var.ebs_csi_driver_identity_type)
+    error_message = "ebs_csi_driver_identity_type must be 'irsa' or 'pod_identity'."
+  }
+}
+
 variable "ebs_csi_driver_namespace" {
-  description = "Kubernetes namespace for EBS CSI driver service account (Pod Identity association)"
+  description = "Kubernetes namespace for EBS CSI driver service account. Used for IRSA OIDC condition and when ebs_csi_driver_identity_type = 'pod_identity'."
   type        = string
   default     = "aws-ebs-csi-driver"
 }
 
 variable "ebs_csi_driver_service_account" {
-  description = "Kubernetes service account name for EBS CSI driver (Pod Identity association)"
+  description = "Kubernetes service account name for EBS CSI driver. Used for IRSA OIDC condition and when ebs_csi_driver_identity_type = 'pod_identity'."
   type        = string
   default     = "ebs-csi-controller-sa"
 }

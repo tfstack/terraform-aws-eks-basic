@@ -264,11 +264,12 @@ run "eks_ebs_csi_driver_dedicated" {
   command = plan
 
   variables {
-    name                  = "test-eks-cluster"
-    kubernetes_version    = "1.35"
-    vpc_id                = "vpc-12345678"
-    subnet_ids            = ["subnet-12345678", "subnet-87654321"]
-    enable_ebs_csi_driver = true
+    name                         = "test-eks-cluster"
+    kubernetes_version           = "1.35"
+    vpc_id                       = "vpc-12345678"
+    subnet_ids                   = ["subnet-12345678", "subnet-87654321"]
+    enable_ebs_csi_driver        = true
+    ebs_csi_driver_identity_type = "pod_identity"
     addons = {
       aws-ebs-csi-driver = {
         addon_version = "v1.38.0-eksbuild.1"
@@ -283,7 +284,7 @@ run "eks_ebs_csi_driver_dedicated" {
 
   assert {
     condition     = length(aws_eks_pod_identity_association.ebs_csi_driver) == 1
-    error_message = "Pod Identity association for EBS CSI driver should be created"
+    error_message = "Pod Identity association for EBS CSI driver should be created when ebs_csi_driver_identity_type is pod_identity"
   }
 }
 
