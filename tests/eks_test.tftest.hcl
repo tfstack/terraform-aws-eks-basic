@@ -260,6 +260,33 @@ run "eks_external_dns_iam" {
   }
 }
 
+run "eks_ebs_csi_driver_dedicated" {
+  command = plan
+
+  variables {
+    name                  = "test-eks-cluster"
+    kubernetes_version    = "1.35"
+    vpc_id                = "vpc-12345678"
+    subnet_ids            = ["subnet-12345678", "subnet-87654321"]
+    enable_ebs_csi_driver = true
+    addons = {
+      aws-ebs-csi-driver = {
+        addon_version = "v1.38.0-eksbuild.1"
+      }
+    }
+  }
+
+  assert {
+    condition     = length(aws_iam_role.ebs_csi_driver) == 1
+    error_message = "EBS CSI driver IAM role should be created when enable_ebs_csi_driver is true"
+  }
+
+  assert {
+    condition     = length(aws_eks_pod_identity_association.ebs_csi_driver) == 1
+    error_message = "Pod Identity association for EBS CSI driver should be created"
+  }
+}
+
 run "eks_pod_identity" {
   command = plan
 

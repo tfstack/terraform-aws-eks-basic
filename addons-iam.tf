@@ -12,13 +12,14 @@ locals {
     }
   }
 
-  # Addons that get a module-created role: from local.addon_service_accounts (IRSA) or var.addon_service_accounts (Pod Identity)
+  # Addons that get a module-created role: from local.addon_service_accounts (IRSA) or var.addon_service_accounts (Pod Identity).
+  # Exclude aws-ebs-csi-driver when enable_ebs_csi_driver is true (dedicated IAM in ebs-csi-driver-iam.tf).
   addon_role_config = var.addon_identity_type == "irsa" ? {
     for k, v in var.addons : k => local.addon_service_accounts[k]
-    if contains(keys(local.addon_service_accounts), k) && try(v.service_account_role_arn, null) == null
+    if contains(keys(local.addon_service_accounts), k) && try(v.service_account_role_arn, null) == null && !(k == "aws-ebs-csi-driver" && var.enable_ebs_csi_driver)
     } : {
     for k, v in var.addons : k => var.addon_service_accounts[k]
-    if contains(keys(var.addon_service_accounts), k) && try(v.service_account_role_arn, null) == null
+    if contains(keys(var.addon_service_accounts), k) && try(v.service_account_role_arn, null) == null && !(k == "aws-ebs-csi-driver" && var.enable_ebs_csi_driver)
   }
 }
 
@@ -102,8 +103,8 @@ resource "aws_eks_pod_identity_association" "addon" {
   role_arn        = aws_iam_role.addon[each.key].arn
 }
 
-# Attach AWS managed policy for EBS CSI driver
-resource "aws_iam_role_policy_attachment" "ebs_csi_driver" {
+# Attach AWS managed policy for EBS CSI driver (addon path only; when enable_ebs_csi_driver is false)
+resource "aws_iam_role_policy_attachment" "addon_ebs_csi_driver" {
   for_each = {
     for k, v in local.addon_role_config : k => v
     if k == "aws-ebs-csi-driver"
