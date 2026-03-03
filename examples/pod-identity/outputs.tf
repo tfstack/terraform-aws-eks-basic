@@ -35,7 +35,22 @@ output "cluster_pod_identity_associations" {
   value       = module.eks.cluster_pod_identity_associations
 }
 
-output "bitwarden_sm_secret_arn" {
-  description = "ARN of the Bitwarden sm-operator machine token secret"
-  value       = aws_secretsmanager_secret.bitwarden_sm_token.arn
+output "s3_role_arns" {
+  description = "IAM role ARNs for S3 access (Loki and WAF sync), keyed by namespace/service_account"
+  value       = module.eks.s3_role_arns
 }
+
+output "loki_logs_bucket_name" {
+  description = "Name of the S3 bucket created for Loki storage (loki-logs-geonet-dev)"
+  value       = aws_s3_bucket.loki_logs.id
+}
+
+output "loki_logs_bucket_arn" {
+  description = "ARN of the S3 bucket created for Loki storage"
+  value       = aws_s3_bucket.loki_logs.arn
+}
+
+# output "bitwarden_sm_secret_arn" {
+#   description = "ARN of the Bitwarden sm-operator machine token secret"
+#   value       = aws_secretsmanager_secret.bitwarden_sm_token.arn
+# }

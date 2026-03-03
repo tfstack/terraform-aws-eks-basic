@@ -323,6 +323,38 @@ variable "secrets_manager_enable_parameter_store" {
   default     = false
 }
 
+################################################################################
+# S3 (IRSA or EKS Pod Identity)
+################################################################################
+
+variable "enable_s3" {
+  description = "Whether to create IAM roles for S3 access (IRSA or Pod Identity per s3_identity_type). One role per s3_access entry."
+  type        = bool
+  default     = false
+}
+
+variable "s3_identity_type" {
+  description = "Identity type for S3. Use 'pod_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon."
+  type        = string
+  default     = "irsa"
+
+  validation {
+    condition     = contains(["irsa", "pod_identity"], var.s3_identity_type)
+    error_message = "s3_identity_type must be 'irsa' or 'pod_identity'."
+  }
+}
+
+variable "s3_access" {
+  description = "List of S3 access configs. Each entry gets its own IAM role (namespace + service_account + bucket_arns + read_only). Do not use namespace 'default' or 'kube-system'."
+  type = list(object({
+    namespace       = string
+    service_account = string
+    bucket_arns     = list(string)
+    read_only       = bool
+  }))
+  default = []
+}
+
 variable "addon_identity_type" {
   description = "Identity type for addons that need IAM (e.g. EBS CSI driver). Use 'pod_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon and addon_service_accounts."
   type        = string

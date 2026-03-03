@@ -43,6 +43,19 @@ locals {
   base_name = var.cluster_name
   name      = var.cluster_name
   tags      = var.tags
+
+  # S3 access: Loki SA uses the bucket we create; other entries (e.g. waf-ingest) from var.s3_access
+  s3_access = concat(
+    [
+      {
+        namespace       = "loki"
+        service_account = "loki"
+        bucket_arns     = [aws_s3_bucket.loki_logs.arn]
+        read_only       = false
+      }
+    ],
+    [for a in var.s3_access : a if !(a.namespace == "loki" && a.service_account == "loki")]
+  )
 }
 
 module "vpc" {
@@ -134,6 +147,11 @@ module "eks" {
     { namespace = "atlantis-1", service_account = "awssm-sync" }
   ]
   secrets_manager_secret_name_prefixes = ["bitwarden/sm-operator"]
+
+  # Pod Identity for S3: Loki bucket created in this example; WAF bucket ARNs from terraform.tfvars
+  enable_s3        = length(local.s3_access) > 0
+  s3_identity_type = "pod_identity"
+  s3_access        = local.s3_access
 
   eks_managed_node_groups = {
     one = {
