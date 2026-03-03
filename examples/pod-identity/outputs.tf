@@ -34,3 +34,8 @@ output "cluster_pod_identity_associations" {
   description = "Pod Identity associations created for the cluster"
   value       = module.eks.cluster_pod_identity_associations
 }
+
+output "bitwarden_sm_secret_arn" {
+  description = "ARN of the Bitwarden sm-operator machine token secret"
+  value       = aws_secretsmanager_secret.bitwarden_sm_token.arn
+}

@@ -135,13 +135,19 @@ output "ebs_csi_driver_role_arn" {
   value       = try(aws_iam_role.ebs_csi_driver[0].arn, null)
 }
 
+output "secrets_manager_role_arn" {
+  description = "IAM role ARN for Secrets Manager (when enabled)"
+  value       = try(aws_iam_role.secrets_manager[0].arn, null)
+}
+
 output "cluster_pod_identity_associations" {
-  description = "Map of EKS Pod Identity associations (addon, ALB controller, External DNS, EBS CSI driver) when using Pod Identity"
+  description = "Map of EKS Pod Identity associations (addon, ALB controller, External DNS, EBS CSI driver, Secrets Manager) when using Pod Identity"
   value = merge(
     aws_eks_pod_identity_association.addon,
     length(aws_eks_pod_identity_association.aws_lb_controller) > 0 ? { "aws_lb_controller" = aws_eks_pod_identity_association.aws_lb_controller[0] } : {},
     length(aws_eks_pod_identity_association.external_dns) > 0 ? { "external_dns" = aws_eks_pod_identity_association.external_dns[0] } : {},
-    length(aws_eks_pod_identity_association.ebs_csi_driver) > 0 ? { "ebs_csi_driver" = aws_eks_pod_identity_association.ebs_csi_driver[0] } : {}
+    length(aws_eks_pod_identity_association.ebs_csi_driver) > 0 ? { "ebs_csi_driver" = aws_eks_pod_identity_association.ebs_csi_driver[0] } : {},
+    { for k, v in aws_eks_pod_identity_association.secrets_manager : "secrets_manager_${k}" => v }
   )
 }
 

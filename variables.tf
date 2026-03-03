@@ -212,6 +212,12 @@ variable "enable_external_dns" {
   default     = false
 }
 
+variable "enable_secrets_manager" {
+  description = "Whether to create IAM role for Secrets Manager (IRSA or Pod Identity per secrets_manager_identity_type)"
+  type        = bool
+  default     = false
+}
+
 ################################################################################
 # Pod Identity Configuration (alternative to IRSA per component)
 ################################################################################
@@ -283,6 +289,38 @@ variable "ebs_csi_driver_service_account" {
   description = "Kubernetes service account name for EBS CSI driver. Used for IRSA OIDC condition and when ebs_csi_driver_identity_type = 'pod_identity'."
   type        = string
   default     = "ebs-csi-controller-sa"
+}
+
+variable "secrets_manager_identity_type" {
+  description = "Identity type for Secrets Manager. Use 'pod_identity' to create Pod Identity association; requires eks-pod-identity-agent addon."
+  type        = string
+  default     = "irsa"
+
+  validation {
+    condition     = contains(["irsa", "pod_identity"], var.secrets_manager_identity_type)
+    error_message = "secrets_manager_identity_type must be 'irsa' or 'pod_identity'."
+  }
+}
+
+variable "secrets_manager_associations" {
+  description = "List of {namespace, service_account} for Pod Identity / IRSA. Each entry gets a Pod Identity association (or IRSA subject). Use app namespaces (e.g. sm-operator-system). Do not use 'default' or 'kube-system'."
+  type = list(object({
+    namespace       = string
+    service_account = string
+  }))
+  default = []
+}
+
+variable "secrets_manager_secret_name_prefixes" {
+  description = "List of secret name prefixes (e.g. ['bitwarden/sm-operator']) for least-privilege policy. When non-empty, creates custom policy with GetSecretValue+DescribeSecret instead of AWSSecretsManagerClientReadOnlyAccess."
+  type        = list(string)
+  default     = []
+}
+
+variable "secrets_manager_enable_parameter_store" {
+  description = "Whether to also attach AmazonSSMReadOnlyAccess for AWS Systems Manager Parameter Store. Use when application pods need to read parameters in addition to secrets."
+  type        = bool
+  default     = false
 }
 
 variable "addon_identity_type" {
