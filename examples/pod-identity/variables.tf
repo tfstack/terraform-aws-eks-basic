@@ -62,3 +62,10 @@ variable "external_dns_aws_zone_type" {
   type        = string
   default     = "public"
 }
+
+variable "bitwarden_sm_machine_token" {
+  description = "Bitwarden Secrets Manager machine token for sm-operator. Replace dummy with real token from Bitwarden: Machine Account → Create Access Token."
+  type        = string
+  default     = "REPLACE_WITH_REAL_TOKEN"
+  sensitive   = true
+}

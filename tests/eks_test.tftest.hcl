@@ -288,6 +288,31 @@ run "eks_ebs_csi_driver_dedicated" {
   }
 }
 
+run "eks_secrets_manager_pod_identity" {
+  command = plan
+
+  variables {
+    name                                 = "test-eks-cluster"
+    kubernetes_version                   = "1.35"
+    vpc_id                               = "vpc-12345678"
+    subnet_ids                           = ["subnet-12345678", "subnet-87654321"]
+    enable_secrets_manager               = true
+    secrets_manager_identity_type        = "pod_identity"
+    secrets_manager_associations         = [{ namespace = "my-app", service_account = "awssm-sync" }]
+    secrets_manager_secret_name_prefixes = ["my-app-secrets"]
+  }
+
+  assert {
+    condition     = length(aws_iam_role.secrets_manager) == 1
+    error_message = "Secrets Manager IAM role should be created when enable_secrets_manager is true"
+  }
+
+  assert {
+    condition     = length(aws_eks_pod_identity_association.secrets_manager) == 1
+    error_message = "Pod Identity association for Secrets Manager should be created when secrets_manager_identity_type is pod_identity"
+  }
+}
+
 run "eks_pod_identity" {
   command = plan
 

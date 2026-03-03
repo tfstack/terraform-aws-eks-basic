@@ -106,14 +106,14 @@ module "eks" {
   # Pod Identity for AWS Load Balancer Controller
   aws_load_balancer_controller_identity_type = "pod_identity"
   enable_aws_load_balancer_controller        = true
-  aws_lb_controller_namespace                = "aws-load-balancer-controller"
-  aws_lb_controller_service_account          = "aws-load-balancer-controller"
 
   # Pod Identity for External DNS
-  external_dns_identity_type   = "pod_identity"
-  enable_external_dns          = true
-  external_dns_namespace       = "external-dns"
-  external_dns_service_account = "external-dns"
+  external_dns_identity_type = "pod_identity"
+  enable_external_dns        = true
+
+  # Pod Identity for EBS CSI driver
+  ebs_csi_driver_identity_type = "pod_identity"
+  enable_ebs_csi_driver        = true
 
   # Pod Identity for addons (EBS CSI driver)
   addon_identity_type = "pod_identity"
@@ -123,6 +123,17 @@ module "eks" {
       name      = "ebs-csi-controller-sa"
     }
   }
+
+  # Pod Identity for Secrets Manager (for app pods mounting secrets via Secrets Store CSI Driver)
+  # sm-operator: awssm-sync SA in sm-operator-system fetches Bitwarden token from AWS Secrets Manager
+  # atlantis-1: awssm-sync SA in atlantis-1 fetches Bitwarden token from bitwarden/sm-operator/atlantis-1/*
+  enable_secrets_manager        = true
+  secrets_manager_identity_type = "pod_identity"
+  secrets_manager_associations = [
+    { namespace = "sm-operator-system", service_account = "awssm-sync" },
+    { namespace = "atlantis-1", service_account = "awssm-sync" }
+  ]
+  secrets_manager_secret_name_prefixes = ["bitwarden/sm-operator"]
 
   eks_managed_node_groups = {
     one = {
@@ -141,67 +152,4 @@ module "eks" {
       }
     }
   }
-}
-
-resource "kubernetes_namespace" "external_dns" {
-  metadata {
-    name   = "external-dns"
-    labels = { name = "external-dns" }
-  }
-  lifecycle { ignore_changes = [metadata[0].annotations, metadata[0].labels] }
-  depends_on = [module.eks]
-}
-
-resource "kubernetes_service_account" "external_dns" {
-  metadata {
-    name      = "external-dns"
-    namespace = kubernetes_namespace.external_dns.metadata[0].name
-  }
-  lifecycle { ignore_changes = [metadata[0].annotations, metadata[0].labels] }
-  depends_on = [module.eks]
-}
-
-locals {
-  external_dns_args = concat(
-    ["--provider=aws", "--policy=sync", "--log-level=info", "--log-format=text", "--source=service", "--source=ingress", "--registry=txt"],
-    var.external_dns_domain_filter != "" ? ["--domain-filter=${var.external_dns_domain_filter}"] : [],
-    var.external_dns_txt_owner_id != "" ? ["--txt-owner-id=${var.external_dns_txt_owner_id}"] : [],
-    ["--aws-zone-type=${var.external_dns_aws_zone_type}"]
-  )
-}
-
-resource "kubernetes_deployment" "external_dns" {
-  metadata {
-    name      = "external-dns"
-    namespace = kubernetes_namespace.external_dns.metadata[0].name
-  }
-  spec {
-    replicas = 1
-    selector {
-      match_labels = { app = "external-dns" }
-    }
-    template {
-      metadata { labels = { app = "external-dns" } }
-      spec {
-        service_account_name = kubernetes_service_account.external_dns.metadata[0].name
-        container {
-          name  = "external-dns"
-          image = "registry.k8s.io/external-dns/external-dns:v0.20.0"
-          args  = local.external_dns_args
-          env {
-            name  = "AWS_DEFAULT_REGION"
-            value = var.aws_region
-          }
-          resources {
-            requests = {
-              cpu    = "50m"
-              memory = "64Mi"
-            }
-          }
-        }
-      }
-    }
-  }
-  lifecycle { ignore_changes = [metadata[0].annotations, metadata[0].labels] }
-  depends_on = [kubernetes_service_account.external_dns]
 }
