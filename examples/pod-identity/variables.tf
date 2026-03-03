@@ -69,3 +69,15 @@ variable "bitwarden_sm_machine_token" {
   default     = "REPLACE_WITH_REAL_TOKEN"
   sensitive   = true
 }
+
+# S3 Pod Identity: set in terraform.tfvars (bucket ARNs). Cannot be sensitive (module for_each).
+variable "s3_access" {
+  description = "List of S3 access configs for Pod Identity (namespace, service_account, bucket_arns, read_only). Loki entry is built from loki-logs-bucket; add others (e.g. waf-ingest) here."
+  type = list(object({
+    namespace       = string
+    service_account = string
+    bucket_arns     = list(string)
+    read_only       = bool
+  }))
+  default = []
+}
