@@ -197,17 +197,27 @@ run "eks_capabilities" {
         }
       }
       kro = {}
+      # Argo CD requires configuration.argo_cd.aws_idc (validation); minimal config for plan-only test
+      argocd = {
+        configuration = {
+          argo_cd = {
+            aws_idc = {
+              idc_instance_arn = "arn:aws:sso:::instance/ssoins-test"
+            }
+          }
+        }
+      }
     }
   }
 
   assert {
-    condition     = length(aws_eks_capability.this) == 2
-    error_message = "Two capabilities (ACK and KRO) should be created"
+    condition     = length(aws_eks_capability.this) == 3
+    error_message = "All three capabilities (ACK, KRO, Argo CD) should be created"
   }
 
   assert {
-    condition     = length(aws_iam_role.capability) == 2
-    error_message = "IAM roles for capabilities should be created"
+    condition     = length(aws_iam_role.capability) == 3
+    error_message = "IAM roles for all three capabilities should be created"
   }
 }
 

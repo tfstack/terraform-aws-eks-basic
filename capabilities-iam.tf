@@ -38,15 +38,16 @@ resource "aws_iam_role" "capability" {
   tags = var.tags
 }
 
-# Attach IAM policies to capability roles (primarily for ACK)
+# Attach IAM policies to capability roles (primarily for ACK). Only when role is created by the module.
 resource "aws_iam_role_policy_attachment" "capability" {
   for_each = merge([
-    for cap_key, cap_val in var.capabilities : {
+    for cap_key, cap_val in var.capabilities :
+    try(cap_val.role_arn, null) == null ? {
       for pol_key, pol_arn in try(cap_val.iam_policy_arns, {}) : "${cap_key}_${pol_key}" => {
         role       = aws_iam_role.capability[cap_key].name
         policy_arn = pol_arn
       }
-    }
+    } : {}
   ]...)
 
   role       = each.value.role

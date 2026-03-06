@@ -102,9 +102,9 @@ variable "cloudwatch_log_group_tags" {
 }
 
 variable "cloudwatch_log_group_force_destroy" {
-  description = "When true, allow the CloudWatch log group to be deleted on terraform destroy. When false, protect it with lifecycle { prevent_destroy = true }."
+  description = "When true (default), the CloudWatch log group can be deleted on terraform destroy. Set to false to protect it with lifecycle { prevent_destroy = true } (e.g. production)."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "region" {
@@ -380,14 +380,55 @@ variable "addon_service_accounts" {
 ################################################################################
 
 variable "capabilities" {
-  description = "Map of EKS capabilities to enable. Valid keys: ack, kro, argocd"
+  description = <<-EOD
+    Map of EKS capabilities to enable. Valid keys: ack, kro, argocd. Argo CD requires configuration.argo_cd.aws_idc (Identity Center). delete_propagation_policy currently only supports RETAIN.
+
+    Security (see https://docs.aws.amazon.com/eks/latest/userguide/capabilities-security.html): Capability role must be in the same account as the cluster; when the module creates the role, the trust policy allows capabilities.eks.amazonaws.com. Least privilege: prefer scoping IAM to specific services, actions, and resources; avoid broad wildcards when possible (Configure ACK permissions, Security considerations for EKS Capabilities). kro: no IAM permissions required; use empty iam_policy_arns or omit. Argo CD: no IAM required by default; optional permissions only for Secrets Manager, CodeConnections, or ECR if used. Argo CD namespace: keep only Argo CD-relevant secrets in the configured namespace (default argocd) for namespace isolation.
+  EOD
   type = map(object({
-    role_arn                  = optional(string)
-    iam_policy_arns           = optional(map(string), {})
-    configuration             = optional(string)
+    role_arn        = optional(string)
+    iam_policy_arns = optional(map(string), {})
+    # Optional: associate additional EKS access entry policies (e.g. AmazonEKSSecretReaderPolicy for ACK controllers that read secrets).
+    access_entry_policy_associations = optional(list(object({
+      policy_arn = string
+      access_scope = optional(object({
+        type       = string # "cluster" or "namespace"
+        namespaces = optional(list(string), [])
+      }), { type = "cluster", namespaces = [] })
+    })), [])
+    # Argo CD only. Optional for ACK/KRO. For Argo CD, aws_idc is required for authentication.
+    configuration = optional(object({
+      argo_cd = optional(object({
+        namespace = optional(string)
+        aws_idc = optional(object({
+          idc_instance_arn = string
+          idc_region       = optional(string)
+        }))
+        rbac_role_mapping = optional(list(object({
+          role = string # ADMIN, EDITOR, VIEWER
+          identity = list(object({
+            type = string # SSO_USER, SSO_GROUP
+            id   = string
+          }))
+        })))
+        network_access = optional(object({
+          vpce_ids = optional(list(string))
+        }))
+      }))
+    }))
     delete_propagation_policy = optional(string, "RETAIN")
   }))
   default = {}
+
+  validation {
+    condition     = alltrue([for k in keys(var.capabilities) : contains(["ack", "kro", "argocd"], k)])
+    error_message = "Capability keys must be one of: ack, kro, argocd."
+  }
+
+  validation {
+    condition     = alltrue([for k, v in var.capabilities : k != "argocd" || try(v.configuration.argo_cd.aws_idc, null) != null])
+    error_message = "Argo CD capability requires configuration.argo_cd.aws_idc (Identity Center) to be set."
+  }
 }
 
 ################################################################################

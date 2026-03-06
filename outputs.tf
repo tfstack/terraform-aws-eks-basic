@@ -225,3 +225,17 @@ output "launch_templates" {
   description = "Map of launch templates created for node groups"
   value       = aws_launch_template.node_group
 }
+
+################################################################################
+# EKS Capabilities
+################################################################################
+
+output "cluster_capabilities" {
+  description = "Map of EKS capability resources (ACK, KRO, Argo CD) keyed by capability name"
+  value       = aws_eks_capability.this
+}
+
+output "cluster_capability_role_arns" {
+  description = "Map of IAM role ARNs for EKS capabilities created by the module (keyed by capability name). Use for ACK controller config or external reference."
+  value       = { for k, r in aws_iam_role.capability : k => r.arn }
+}

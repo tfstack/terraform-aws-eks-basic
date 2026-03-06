@@ -81,4 +81,17 @@ locals {
 
   # Determine if any capabilities are enabled
   capabilities_enabled = length(var.capabilities) > 0
+
+  # Flatten capability access entry policy associations for aws_eks_access_policy_association
+  flattened_capability_policy_associations = merge([
+    for cap_key, cap_val in var.capabilities : {
+      for idx, assoc in try(cap_val.access_entry_policy_associations, []) :
+      "${cap_key}_${idx}_${replace(assoc.policy_arn, "/[^a-zA-Z0-9]/", "-")}" => {
+        principal_arn    = time_sleep.capability[cap_key].triggers["iam_role_arn"]
+        policy_arn       = assoc.policy_arn
+        scope_type       = try(assoc.access_scope.type, "cluster")
+        scope_namespaces = try(assoc.access_scope.namespaces, [])
+      }
+    }
+  ]...)
 }
