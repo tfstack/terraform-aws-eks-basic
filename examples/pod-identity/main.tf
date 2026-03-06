@@ -89,8 +89,7 @@ module "eks" {
   endpoint_public_access = true
 
   # So the Terraform runner can create kubernetes_namespace, kubernetes_service_account, kubernetes_deployment
-  enable_cluster_creator_admin_permissions = true
-  access_entries                           = var.access_entries
+  access_entries = var.access_entries
 
   # Required when using Pod Identity: enable eks-pod-identity-agent addon
   addons = {
