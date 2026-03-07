@@ -173,15 +173,16 @@ EKS automatically creates an access entry for each capability role with default 
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.0 |
 | <a name="requirement_helm"></a> [helm](#requirement\_helm) | >= 2.13 |
 | <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | >= 2.30 |
+| <a name="requirement_time"></a> [time](#requirement\_time) | >= 0.9.0 |
 | <a name="requirement_tls"></a> [tls](#requirement\_tls) | >= 4.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.28.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.35.1 |
 | <a name="provider_time"></a> [time](#provider\_time) | 0.13.1 |
-| <a name="provider_tls"></a> [tls](#provider\_tls) | 4.1.0 |
+| <a name="provider_tls"></a> [tls](#provider\_tls) | 4.2.1 |
 
 ## Modules
 
@@ -194,6 +195,7 @@ No modules.
 | [aws_cloudwatch_log_group.this_allow_destroy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
 | [aws_cloudwatch_log_group.this_prevent_destroy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
 | [aws_eks_access_entry.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_entry) | resource |
+| [aws_eks_access_policy_association.capability](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_policy_association) | resource |
 | [aws_eks_access_policy_association.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_policy_association) | resource |
 | [aws_eks_addon.before_compute](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
 | [aws_eks_addon.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
@@ -241,6 +243,7 @@ No modules.
 | [aws_security_group_rule.node_ipv6_egress](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
 | [aws_security_group_rule.node_self](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
 | [aws_security_group_rule.node_sg](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
+| [time_sleep.capability](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [time_sleep.this](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_eks_cluster_auth.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/eks_cluster_auth) | data source |
@@ -280,9 +283,9 @@ No modules.
 | <a name="input_aws_lb_controller_namespace"></a> [aws\_lb\_controller\_namespace](#input\_aws\_lb\_controller\_namespace) | Kubernetes namespace for AWS Load Balancer Controller service account (Pod Identity). Used when aws\_load\_balancer\_controller\_identity\_type = 'pod\_identity'. | `string` | `"aws-load-balancer-controller"` | no |
 | <a name="input_aws_lb_controller_service_account"></a> [aws\_lb\_controller\_service\_account](#input\_aws\_lb\_controller\_service\_account) | Kubernetes service account name for AWS Load Balancer Controller (Pod Identity). | `string` | `"aws-load-balancer-controller"` | no |
 | <a name="input_aws_load_balancer_controller_identity_type"></a> [aws\_load\_balancer\_controller\_identity\_type](#input\_aws\_load\_balancer\_controller\_identity\_type) | Identity type for AWS Load Balancer Controller. Use 'pod\_identity' to create Pod Identity association; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
-| <a name="input_capabilities"></a> [capabilities](#input\_capabilities) | Map of EKS capabilities to enable. Valid keys: ack, kro, argocd | <pre>map(object({<br/>    role_arn                  = optional(string)<br/>    iam_policy_arns           = optional(map(string), {})<br/>    configuration             = optional(string)<br/>    delete_propagation_policy = optional(string, "RETAIN")<br/>  }))</pre> | `{}` | no |
+| <a name="input_capabilities"></a> [capabilities](#input\_capabilities) | Map of EKS capabilities to enable. Valid keys: ack, kro, argocd. Argo CD requires configuration.argo\_cd.aws\_idc (Identity Center). delete\_propagation\_policy currently only supports RETAIN.<br/><br/>Security (see https://docs.aws.amazon.com/eks/latest/userguide/capabilities-security.html): Capability role must be in the same account as the cluster; when the module creates the role, the trust policy allows capabilities.eks.amazonaws.com. Least privilege: prefer scoping IAM to specific services, actions, and resources; avoid broad wildcards when possible (Configure ACK permissions, Security considerations for EKS Capabilities). kro: no IAM permissions required; use empty iam\_policy\_arns or omit. Argo CD: no IAM required by default; optional permissions only for Secrets Manager, CodeConnections, or ECR if used. Argo CD namespace: keep only Argo CD-relevant secrets in the configured namespace (default argocd) for namespace isolation. | <pre>map(object({<br/>    role_arn        = optional(string)<br/>    iam_policy_arns = optional(map(string), {})<br/>    # Optional: associate additional EKS access entry policies (e.g. AmazonEKSSecretReaderPolicy for ACK controllers that read secrets).<br/>    access_entry_policy_associations = optional(list(object({<br/>      policy_arn = string<br/>      access_scope = optional(object({<br/>        type       = string # "cluster" or "namespace"<br/>        namespaces = optional(list(string), [])<br/>      }), { type = "cluster", namespaces = [] })<br/>    })), [])<br/>    # Argo CD only. Optional for ACK/KRO. For Argo CD, aws_idc is required for authentication.<br/>    configuration = optional(object({<br/>      argo_cd = optional(object({<br/>        namespace = optional(string)<br/>        aws_idc = optional(object({<br/>          idc_instance_arn = string<br/>          idc_region       = optional(string)<br/>        }))<br/>        rbac_role_mapping = optional(list(object({<br/>          role = string # ADMIN, EDITOR, VIEWER<br/>          identity = list(object({<br/>            type = string # SSO_USER, SSO_GROUP<br/>            id   = string<br/>          }))<br/>        })))<br/>        network_access = optional(object({<br/>          vpce_ids = optional(list(string))<br/>        }))<br/>      }))<br/>    }))<br/>    delete_propagation_policy = optional(string, "RETAIN")<br/>  }))</pre> | `{}` | no |
 | <a name="input_cloudwatch_log_group_class"></a> [cloudwatch\_log\_group\_class](#input\_cloudwatch\_log\_group\_class) | Specifies the log class of the log group. Valid values are: STANDARD or INFREQUENT\_ACCESS | `string` | `null` | no |
-| <a name="input_cloudwatch_log_group_force_destroy"></a> [cloudwatch\_log\_group\_force\_destroy](#input\_cloudwatch\_log\_group\_force\_destroy) | When true, allow the CloudWatch log group to be deleted on terraform destroy. When false, protect it with lifecycle { prevent\_destroy = true }. | `bool` | `false` | no |
+| <a name="input_cloudwatch_log_group_force_destroy"></a> [cloudwatch\_log\_group\_force\_destroy](#input\_cloudwatch\_log\_group\_force\_destroy) | When true (default), the CloudWatch log group can be deleted on terraform destroy. Set to false to protect it with lifecycle { prevent\_destroy = true } (e.g. production). | `bool` | `true` | no |
 | <a name="input_cloudwatch_log_group_kms_key_id"></a> [cloudwatch\_log\_group\_kms\_key\_id](#input\_cloudwatch\_log\_group\_kms\_key\_id) | The ARN of the KMS Key to use when encrypting log data | `string` | `null` | no |
 | <a name="input_cloudwatch_log_group_retention_in_days"></a> [cloudwatch\_log\_group\_retention\_in\_days](#input\_cloudwatch\_log\_group\_retention\_in\_days) | Number of days to retain log events in the CloudWatch log group | `number` | `14` | no |
 | <a name="input_cloudwatch_log_group_tags"></a> [cloudwatch\_log\_group\_tags](#input\_cloudwatch\_log\_group\_tags) | Additional tags to apply to the CloudWatch log group | `map(string)` | `{}` | no |
@@ -335,6 +338,8 @@ No modules.
 | <a name="output_cluster_arn"></a> [cluster\_arn](#output\_cluster\_arn) | The Amazon Resource Name (ARN) of the cluster |
 | <a name="output_cluster_auth_token"></a> [cluster\_auth\_token](#output\_cluster\_auth\_token) | Token to authenticate with the EKS cluster |
 | <a name="output_cluster_ca_certificate"></a> [cluster\_ca\_certificate](#output\_cluster\_ca\_certificate) | Decoded certificate data required to communicate with the cluster |
+| <a name="output_cluster_capabilities"></a> [cluster\_capabilities](#output\_cluster\_capabilities) | Map of EKS capability resources (ACK, KRO, Argo CD) keyed by capability name |
+| <a name="output_cluster_capability_role_arns"></a> [cluster\_capability\_role\_arns](#output\_cluster\_capability\_role\_arns) | Map of IAM role ARNs for EKS capabilities created by the module (keyed by capability name). Use for ACK controller config or external reference. |
 | <a name="output_cluster_certificate_authority_data"></a> [cluster\_certificate\_authority\_data](#output\_cluster\_certificate\_authority\_data) | Base64 encoded certificate data required to communicate with the cluster |
 | <a name="output_cluster_endpoint"></a> [cluster\_endpoint](#output\_cluster\_endpoint) | Endpoint for your Kubernetes API server |
 | <a name="output_cluster_iam_role_arn"></a> [cluster\_iam\_role\_arn](#output\_cluster\_iam\_role\_arn) | Cluster IAM role ARN |
