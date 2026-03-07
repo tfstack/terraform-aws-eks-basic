@@ -151,6 +151,12 @@ When `enable_secrets_manager = true`, the module creates an IAM role for **workl
 
 **IAM policy:** Use `secrets_manager_secret_name_prefixes` (e.g. `["bitwarden/sm-operator"]`) for least-privilege access to specific secrets. When empty, attaches `AWSSecretsManagerClientReadOnlyAccess` (broad access).
 
+### EKS Capabilities (ACK, KRO, Argo CD)
+
+When using the `capabilities` variable, see [Security considerations for EKS Capabilities](https://docs.aws.amazon.com/eks/latest/userguide/capabilities-security.html) for IAM least privilege, access entries, and namespace isolation.
+
+EKS automatically creates an access entry for each capability role with default capability policies. For ACK controllers that need to read Kubernetes secrets (e.g. documentdb, rds), associate the managed policy `arn:aws:eks::aws:cluster-access-policy/AmazonEKSSecretReaderPolicy` with the capability's principal—either use the optional `access_entry_policy_associations` on the capability (with the desired `access_scope`, e.g. namespace-scoped) or create an `aws_eks_access_policy_association` elsewhere for the capability role ARN. Apply least privilege for ACK (scope IAM and, if used, access policies) and keep only Argo CD–relevant secrets in the Argo CD namespace (default `argocd`).
+
 ## Examples
 
 - **[examples/basic](examples/basic/)** - Basic EKS cluster with EC2 node groups
@@ -386,8 +392,9 @@ terraform test
 terraform-aws-eks-basic/
 ├── main.tf              # Core EKS cluster, node groups, addons, OIDC provider
 ├── access-entries.tf    # EKS access entries for authentication
-├── capabilities.tf      # EKS Capabilities (ACK, KRO, ArgoCD)
-├── capabilities-iam.tf  # IAM roles for EKS Capabilities
+├── capabilities.tf                 # EKS Capabilities (ACK, KRO, ArgoCD)
+├── capabilities-iam.tf             # IAM roles for EKS Capabilities
+├── capabilities-access-entries.tf # Optional access entry policy associations (e.g. ACK Secret Reader)
 ├── addons-iam.tf        # IAM roles for addons (EBS CSI, Secrets Manager, etc)
 ├── locals.tf            # Local values and computed configurations
 ├── cluster-auth.tf      # Cluster authentication data source
