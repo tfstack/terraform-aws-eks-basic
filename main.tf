@@ -191,6 +191,57 @@ resource "aws_iam_role_policy_attachment" "this" {
   policy_arn = each.value
 }
 
+resource "aws_iam_role_policy_attachment" "automode_cluster" {
+  for_each = var.enable_automode ? {
+    AmazonEKSComputePolicy       = "arn:aws:iam::aws:policy/AmazonEKSComputePolicy"
+    AmazonEKSBlockStoragePolicy  = "arn:aws:iam::aws:policy/AmazonEKSBlockStoragePolicy"
+    AmazonEKSLoadBalancingPolicy = "arn:aws:iam::aws:policy/AmazonEKSLoadBalancingPolicy"
+    AmazonEKSNetworkingPolicy    = "arn:aws:iam::aws:policy/AmazonEKSNetworkingPolicy"
+  } : {}
+
+  role       = aws_iam_role.this[0].name
+  policy_arn = each.value
+}
+
+################################################################################
+# Auto Mode Node IAM Role
+################################################################################
+# Access entry and AmazonEKSAutoNodePolicy for this role are created by EKS when
+# using built-in node pools; do not create them in Terraform (ResourceInUseException).
+
+data "aws_iam_policy_document" "eks_automode_nodes_assume_role" {
+  count = var.enable_automode ? 1 : 0
+
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+resource "aws_iam_role" "eks_automode_nodes" {
+  count = var.enable_automode ? 1 : 0
+
+  name               = "${var.name}-eks-automode-nodes-role"
+  assume_role_policy = data.aws_iam_policy_document.eks_automode_nodes_assume_role[0].json
+  tags               = var.tags
+}
+
+resource "aws_iam_role_policy_attachment" "eks_automode_nodes" {
+  for_each = var.enable_automode ? {
+    AmazonEKSWorkerNodeMinimalPolicy   = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodeMinimalPolicy"
+    AmazonEC2ContainerRegistryPullOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly"
+  } : {}
+
+  role       = aws_iam_role.eks_automode_nodes[0].name
+  policy_arn = each.value
+}
+
 ################################################################################
 # Cluster Encryption IAM Policy
 ################################################################################
@@ -281,6 +332,25 @@ resource "aws_eks_cluster" "this" {
     ip_family         = var.cluster_ip_family
     service_ipv4_cidr = var.service_ipv4_cidr
     # service_ipv6_cidr is automatically assigned by AWS when ip_family = "ipv6"
+
+    elastic_load_balancing {
+      enabled = var.enable_automode
+    }
+  }
+
+  storage_config {
+    block_storage {
+      enabled = var.enable_automode
+    }
+  }
+
+  dynamic "compute_config" {
+    for_each = var.enable_automode ? [1] : []
+    content {
+      enabled       = true
+      node_pools    = var.automode_node_pools
+      node_role_arn = aws_iam_role.eks_automode_nodes[0].arn
+    }
   }
 
   enabled_cluster_log_types = var.enabled_cluster_log_types
@@ -305,6 +375,7 @@ resource "aws_eks_cluster" "this" {
 
   depends_on = [
     aws_iam_role_policy_attachment.this,
+    aws_iam_role_policy_attachment.automode_cluster,
     aws_kms_key.this,
   ]
 }

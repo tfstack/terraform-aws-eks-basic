@@ -1,0 +1,31 @@
+# Minimal workload to trigger Auto Mode scaling.
+# Apply with: kubectl apply -f scale-test.yaml
+# Watch nodes: kubectl get nodes -w
+# Watch pods:  kubectl get pods -A -w
+# Scale up:    kubectl scale deployment scale-test --replicas=10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scale-test
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: scale-test
+  template:
+    metadata:
+      labels:
+        app: scale-test
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "128Mi"

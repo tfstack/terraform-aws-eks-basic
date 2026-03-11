@@ -1,12 +1,13 @@
 # terraform-aws-eks-basic
 
-> **⚠️ Note**: This module has been revamped and currently supports **EC2 managed node groups only**. Fargate and AutoMode support are not available in this version.
+> **⚠️ Note**: This module supports **EC2 managed node groups** and **EKS Auto Mode**. Fargate is not available in this version.
 
-A Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Service) clusters with EC2 managed node groups.
+A Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Service) clusters with EC2 managed node groups and optional EKS Auto Mode.
 
 ## Features
 
 - **EC2 Managed Node Groups**: Full support with customizable launch templates and auto-scaling
+- **EKS Auto Mode**: Optional; compute is auto-provisioned by AWS (no managed node groups; built-in node pools). Mutually exclusive with `eks_managed_node_groups`.
 - **Dual-Stack Support**: IPv4 and IPv6 cluster support (IPv6 service CIDR auto-assigned by AWS)
 - **Modern EKS Access Entries**: Native EKS authentication via access entries (no aws-auth ConfigMap)
 - **IRSA and Pod Identity**: OIDC provider for IAM Roles for Service Accounts (IRSA); optional EKS Pod Identity per component (ALB controller, External DNS, addons, Secrets Manager). Choose per component via `*_identity_type` variables (`"irsa"` or `"pod_identity"`). When using Pod Identity, enable the **eks-pod-identity-agent** addon.
@@ -161,8 +162,10 @@ EKS automatically creates an access entry for each capability role with default 
 
 - **[examples/basic](examples/basic/)** - Basic EKS cluster with EC2 node groups
 - **[examples/pod-identity](examples/pod-identity/)** - EKS cluster using Pod Identity for ALB controller, External DNS, EBS CSI addon, and Secrets Manager
-- **[examples/ebs-web-app](examples/ebs-web-app/)** - EKS cluster with node groups and VPC setup
-- **[examples/eks-capabilities](examples/eks-capabilities/)** - Platform engineering example with EKS capabilities
+- **[examples/eks-capabilities](examples/eks-capabilities/)** - Platform engineering example with EKS capabilities (ACK, KRO, Argo CD)
+- **[examples/eks-capabilities-private](examples/eks-capabilities-private/)** - Private-only EKS and Argo CD (VPC endpoints; access from within VPC)
+- **[examples/eks-auto-mode](examples/eks-auto-mode/)** - EKS cluster with Auto Mode (compute auto-provisioned; no managed node groups)
+- **[examples/private-endpoint](examples/private-endpoint/)** - EKS with private API endpoint
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
@@ -408,9 +411,12 @@ terraform-aws-eks-basic/
 ├── versions.tf          # Provider version constraints
 ├── README.md            # This file
 └── examples/
-    ├── basic/           # Basic usage example
-    ├── ebs-web-app/     # Example with VPC and node groups
-    └── eks-capabilities/ # Platform engineering with capabilities
+    ├── basic/                    # Basic usage example
+    ├── eks-capabilities/         # Platform engineering with capabilities
+    ├── eks-capabilities-private/ # Private-only EKS and Argo CD
+    ├── eks-auto-mode/            # EKS Auto Mode (no managed node groups)
+    ├── pod-identity/             # Pod Identity for ALB, External DNS, EBS CSI, Secrets Manager
+    └── private-endpoint/         # EKS with private API endpoint
 ```
 
 ## License

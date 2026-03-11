@@ -432,6 +432,22 @@ variable "capabilities" {
 }
 
 ################################################################################
+# Auto Mode Configuration
+################################################################################
+
+variable "enable_automode" {
+  description = "Enable EKS Auto Mode. Mutually exclusive with eks_managed_node_groups."
+  type        = bool
+  default     = false
+}
+
+variable "automode_node_pools" {
+  description = "Built-in node pool types to enable with Auto Mode. Only used when enable_automode = true."
+  type        = list(string)
+  default     = ["system", "general-purpose"]
+}
+
+################################################################################
 # Node Group Configuration
 ################################################################################
 
@@ -456,4 +472,9 @@ variable "eks_managed_node_groups" {
     tags   = optional(map(string), {})
   }))
   default = {}
+
+  validation {
+    condition     = !(var.enable_automode && length(var.eks_managed_node_groups) > 0)
+    error_message = "enable_automode and eks_managed_node_groups are mutually exclusive. Use one or the other."
+  }
 }
