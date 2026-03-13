@@ -1,0 +1,35 @@
+# Copy to terraform.tfvars and set your values.
+# Add terraform.tfvars to .gitignore if it contains account-specific data.
+
+# Optional: set to your IAM Identity Center instance ARN to create the Argo CD capability.
+# When unset (null), only ACK and KRO are created.
+# argocd_idc_instance_arn = "arn:aws:sso:::instance/ssoins-XXXXXXXX"
+
+# Argo CD RBAC: map IdC users/groups to Argo CD roles (ADMIN, EDITOR, VIEWER). Required for console access; without it you get Unauthorized.
+# Get user/group IDs from IAM Identity Center console or ask your IdC admin.
+# argocd_rbac_role_mappings = [
+#   {
+#     role     = "ADMIN"
+#     identity = [{ type = "SSO_USER", id = "your-idc-user-id" }]
+#   },
+#   {
+#     role     = "VIEWER"
+#     identity = [{ type = "SSO_GROUP", id = "your-idc-group-id" }]
+#   }
+# ]
+
+# Cluster access: grant EKS cluster access to IAM principals (required if using access_entries).
+access_entries = {
+  admin = {
+    principal_arn = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
+    type          = "STANDARD"
+    policy_associations = {
+      admin = {
+        policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+        access_scope = {
+          type = "cluster"
+        }
+      }
+    }
+  }
+}
