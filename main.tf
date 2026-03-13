@@ -469,24 +469,40 @@ resource "aws_security_group" "node" {
 ################################################################################
 
 resource "aws_security_group_rule" "cluster" {
-  for_each = {
-    ingress_nodes_443 = {
-      description              = "Node groups to cluster API"
-      type                     = "ingress"
-      from_port                = 443
-      to_port                  = 443
-      protocol                 = "tcp"
-      source_security_group_id = aws_security_group.node[0].id
+  for_each = merge(
+    {
+      ingress_nodes_443 = {
+        security_group_id        = aws_security_group.cluster[0].id
+        description              = "Node groups to cluster API"
+        type                     = "ingress"
+        from_port                = 443
+        to_port                  = 443
+        protocol                 = "tcp"
+        source_security_group_id = aws_security_group.node[0].id
+      }
+    },
+    {
+      for cidr in var.private_access_cidrs :
+      "private_${replace(cidr, "/", "_")}" => {
+        security_group_id = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
+        description       = "Allow private endpoint access"
+        type              = "ingress"
+        from_port         = 443
+        to_port           = 443
+        protocol          = "tcp"
+        cidr_blocks       = [cidr]
+      }
     }
-  }
+  )
 
   description              = each.value.description
   type                     = each.value.type
   from_port                = each.value.from_port
   to_port                  = each.value.to_port
   protocol                 = each.value.protocol
-  source_security_group_id = each.value.source_security_group_id
-  security_group_id        = aws_security_group.cluster[0].id
+  security_group_id        = each.value.security_group_id
+  source_security_group_id = lookup(each.value, "source_security_group_id", null)
+  cidr_blocks              = lookup(each.value, "cidr_blocks", null)
   region                   = var.region
 }
 
