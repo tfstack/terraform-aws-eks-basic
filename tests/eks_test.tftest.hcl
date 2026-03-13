@@ -406,3 +406,54 @@ run "eks_ipv6_configuration" {
     error_message = "IPv6 egress security group rule should be created when ip_family is ipv6"
   }
 }
+
+run "eks_automode" {
+  command = plan
+
+  variables {
+    name                = "test-eks-cluster"
+    kubernetes_version  = "1.29"
+    vpc_id              = "vpc-12345678"
+    subnet_ids          = ["subnet-12345678", "subnet-87654321"]
+    enable_automode     = true
+    automode_node_pools = ["system", "general-purpose"]
+    # eks_managed_node_groups omitted (default {}) - mutually exclusive with enable_automode
+  }
+
+  assert {
+    condition     = length(aws_iam_role.eks_automode_nodes) == 1
+    error_message = "Auto Mode node IAM role should be created when enable_automode is true"
+  }
+
+  # Access entry and policy association for the node role are created by EKS when using built-in node pools; we do not create them in Terraform.
+
+  assert {
+    condition     = length(aws_iam_role_policy_attachment.automode_cluster) == 4
+    error_message = "Cluster role should have 4 Auto Mode policy attachments when enable_automode is true"
+  }
+
+  assert {
+    condition     = aws_eks_cluster.this.storage_config[0].block_storage[0].enabled == true
+    error_message = "Cluster storage_config.block_storage should be enabled when enable_automode is true"
+  }
+
+  assert {
+    condition     = aws_eks_cluster.this.kubernetes_network_config[0].elastic_load_balancing[0].enabled == true
+    error_message = "Cluster elastic_load_balancing should be enabled when enable_automode is true"
+  }
+
+  assert {
+    condition     = length(aws_eks_cluster.this.compute_config) == 1
+    error_message = "Cluster compute_config block should be present when enable_automode is true"
+  }
+
+  assert {
+    condition     = length(aws_eks_node_group.this) == 0
+    error_message = "No managed node groups should be created when using Auto Mode"
+  }
+
+  assert {
+    condition     = length(aws_iam_role.eks_nodes) == 0
+    error_message = "EC2 node IAM role should not be created when using Auto Mode (no managed node groups)"
+  }
+}

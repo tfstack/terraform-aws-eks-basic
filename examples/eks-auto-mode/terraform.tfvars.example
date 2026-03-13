@@ -1,0 +1,42 @@
+# Copy to terraform.tfvars and set your values.
+# Add terraform.tfvars to .gitignore if it contains account-specific data.
+
+# Cluster access: grant EKS cluster access to IAM principals via access_entries.
+# Without this (or enable_cluster_creator_admin_permissions), you will not have kubectl access.
+access_entries = {
+  # Full cluster admin (e.g. for the Terraform runner or your admin role)
+  admin = {
+    principal_arn = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
+    type          = "STANDARD"
+    policy_associations = {
+      admin = {
+        policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+        access_scope = { type = "cluster" }
+      }
+    }
+  }
+
+  # Optional: read-only access (e.g. for viewers)
+  # viewer = {
+  #   principal_arn = "arn:aws:iam::ACCOUNT_ID:role/ViewerRole"
+  #   type          = "STANDARD"
+  #   policy_associations = {
+  #     view = {
+  #       policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"
+  #       access_scope = { type = "cluster" }
+  #     }
+  #   }
+  # }
+
+  # Optional: namespace-scoped access (e.g. dev team in default namespace)
+  # dev_default = {
+  #   principal_arn = "arn:aws:iam::ACCOUNT_ID:role/DevTeamRole"
+  #   type          = "STANDARD"
+  #   policy_associations = {
+  #     edit = {
+  #       policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy"
+  #       access_scope = { type = "namespace", namespaces = ["default"] }
+  #     }
+  #   }
+  # }
+}
