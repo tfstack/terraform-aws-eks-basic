@@ -394,6 +394,8 @@ variable "capabilities" {
   type = map(object({
     role_arn        = optional(string)
     iam_policy_arns = optional(map(string), {})
+    # Argo CD: list of CodeConnections connection ARNs for repo access (codeconnections:UseConnection, GetConnection). Use submodule modules/argocd-codeconnections to create connections and attach policy, or pass ARNs here for root module to attach.
+    code_connection_arns = optional(list(string), [])
     # Optional: associate additional EKS access entry policies (e.g. AmazonEKSSecretReaderPolicy for ACK controllers that read secrets).
     access_entry_policy_associations = optional(list(object({
       policy_arn = string

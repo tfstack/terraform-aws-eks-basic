@@ -158,6 +158,8 @@ When using the `capabilities` variable, see [Security considerations for EKS Cap
 
 EKS automatically creates an access entry for each capability role with default capability policies. For ACK controllers that need to read Kubernetes secrets (e.g. documentdb, rds), associate the managed policy `arn:aws:eks::aws:cluster-access-policy/AmazonEKSSecretReaderPolicy` with the capability's principal—either use the optional `access_entry_policy_associations` on the capability (with the desired `access_scope`, e.g. namespace-scoped) or create an `aws_eks_access_policy_association` elsewhere for the capability role ARN. Apply least privilege for ACK (scope IAM and, if used, access policies) and keep only Argo CD–relevant secrets in the Argo CD namespace (default `argocd`).
 
+**Argo CD repository access (CodeConnections):** To let Argo CD use [AWS CodeConnections](https://docs.aws.amazon.com/eks/latest/userguide/argocd-configure-repositories.html) for Git (GitHub, GitLab, Bitbucket) without storing credentials, either (A) pass connection ARNs in the capability: `capabilities.argocd.code_connection_arns = ["arn:aws:codestar-connections:REGION:ACCOUNT:connection/ID"]` so the module attaches `codeconnections:UseConnection` and `codeconnections:GetConnection`, or (B) use the **[modules/argocd-codeconnections](modules/argocd-codeconnections/)** submodule to create CodeStar Connections and attach the policy to the Argo CD capability role (see submodule README). Complete connection authentication in the AWS Console after apply. To add a repo to Argo CD Settings → Repositories, create the repository Secret once with kubectl (see example README).
+
 ## Examples
 
 - **[examples/basic](examples/basic/)** - Basic EKS cluster with EC2 node groups
@@ -417,6 +419,8 @@ terraform-aws-eks-basic/
 ├── outputs.tf           # Output values
 ├── versions.tf          # Provider version constraints
 ├── README.md            # This file
+├── modules/
+│   └── argocd-codeconnections/  # Optional: CodeStar Connections + IAM for Argo CD repo access
 └── examples/
     ├── basic/                    # Basic usage example
     ├── eks-capabilities/         # Platform engineering with capabilities

@@ -1,0 +1,25 @@
+# Copy to terraform.tfvars and set your values.
+# Requires an existing VPC and subnets (e.g. private subnets for EKS).
+
+vpc_id     = "vpc-xxxxxxxx"
+subnet_ids = ["subnet-aaaaaaaa", "subnet-bbbbbbbb"]
+
+# Optional: enable Argo CD capability (requires IAM Identity Center). Uncomment and set.
+# argocd_idc_instance_arn = "arn:aws:sso:::instance/ssoins-xxxxxxxxxxxxx"
+
+# private_access_cidrs = ["10.0.0.0/8"]
+# argocd_vpce_ids = ["vpce-xxxxxxxx"]
+
+# Cluster access (required for kubectl)
+access_entries = {
+  admin = {
+    principal_arn = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
+    type          = "STANDARD"
+    policy_associations = {
+      admin = {
+        policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+        access_scope = { type = "cluster" }
+      }
+    }
+  }
+}
