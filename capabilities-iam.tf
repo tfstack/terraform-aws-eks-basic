@@ -53,3 +53,28 @@ resource "aws_iam_role_policy_attachment" "capability" {
   role       = each.value.role
   policy_arn = each.value.policy_arn
 }
+
+# Argo CD: inline policy for CodeConnections (UseConnection + GetConnection) when code_connection_arns is set and module creates the role.
+data "aws_iam_policy_document" "argocd_codeconnections" {
+  for_each = {
+    for k, v in var.capabilities : k => v
+    if k == "argocd" && try(v.role_arn, null) == null && length(try(v.code_connection_arns, [])) > 0
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "codeconnections:UseConnection",
+      "codeconnections:GetConnection"
+    ]
+    resources = var.capabilities[each.key].code_connection_arns
+  }
+}
+
+resource "aws_iam_role_policy" "argocd_codeconnections" {
+  for_each = data.aws_iam_policy_document.argocd_codeconnections
+
+  name   = "${var.name}-argocd-codeconnections"
+  role   = aws_iam_role.capability["argocd"].name
+  policy = data.aws_iam_policy_document.argocd_codeconnections[each.key].json
+}
