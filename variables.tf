@@ -44,6 +44,12 @@ variable "public_access_cidrs" {
   default     = ["0.0.0.0/0"]
 }
 
+variable "private_access_cidrs" {
+  description = "List of CIDR blocks that can access the Amazon EKS private API server endpoint"
+  type        = list(string)
+  default     = []
+}
+
 variable "cluster_ip_family" {
   description = "IP family for the EKS cluster. Valid values: ipv4, ipv6"
   type        = string
