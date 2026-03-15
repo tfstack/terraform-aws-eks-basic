@@ -31,7 +31,7 @@ data "aws_iam_policy_document" "codeconnections_use" {
 }
 
 resource "aws_iam_role_policy" "codeconnections" {
-  count = local.argocd_role_name != null ? 1 : 0
+  count = var.attach_codeconnections_policy ? 1 : 0
 
   name   = "argocd-codeconnections-use"
   role   = local.argocd_role_name
