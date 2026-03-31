@@ -219,10 +219,13 @@ No modules.
 | [aws_eks_node_group.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_node_group) | resource |
 | [aws_eks_pod_identity_association.addon](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.aws_lb_controller](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
+| [aws_eks_pod_identity_association.dynamodb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.ebs_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.external_dns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
+| [aws_eks_pod_identity_association.kinesis](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.secrets_manager](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
+| [aws_eks_pod_identity_association.sqs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_iam_instance_profile.eks_nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_instance_profile) | resource |
 | [aws_iam_openid_connect_provider.oidc_provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_openid_connect_provider) | resource |
 | [aws_iam_policy.aws_lb_controller](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy) | resource |
@@ -230,17 +233,23 @@ No modules.
 | [aws_iam_role.addon](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.aws_lb_controller](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.capability](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role.dynamodb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.ebs_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.eks_automode_nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.eks_nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.external_dns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role.kinesis](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.secrets_manager](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role.sqs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role_policy.argocd_codeconnections](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
+| [aws_iam_role_policy.dynamodb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.external_dns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
+| [aws_iam_role_policy.kinesis](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.secrets_manager_scoped](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
+| [aws_iam_role_policy.sqs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy_attachment.addon_ebs_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.automode_cluster](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.aws_lb_controller](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
@@ -273,6 +282,9 @@ No modules.
 | [aws_iam_policy_document.aws_lb_controller_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.aws_lb_controller_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.capability_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.dynamodb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.dynamodb_assume_role_irsa](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.dynamodb_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.ebs_csi_driver_assume_role_irsa](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.ebs_csi_driver_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.eks_automode_nodes_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -281,6 +293,9 @@ No modules.
 | [aws_iam_policy_document.external_dns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.external_dns_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.external_dns_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.kinesis](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.kinesis_assume_role_irsa](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.kinesis_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.kms_key](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.s3_assume_role_irsa](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -288,6 +303,9 @@ No modules.
 | [aws_iam_policy_document.secrets_manager_assume_role_irsa](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.secrets_manager_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.secrets_manager_scoped](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.sqs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.sqs_assume_role_irsa](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.sqs_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_partition.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/partition) | data source |
 | [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
@@ -317,6 +335,8 @@ No modules.
 | <a name="input_cluster_ip_family"></a> [cluster\_ip\_family](#input\_cluster\_ip\_family) | IP family for the EKS cluster. Valid values: ipv4, ipv6 | `string` | `"ipv4"` | no |
 | <a name="input_create_cloudwatch_log_group"></a> [create\_cloudwatch\_log\_group](#input\_create\_cloudwatch\_log\_group) | Whether to create a CloudWatch log group for EKS cluster logs | `bool` | `true` | no |
 | <a name="input_create_kms_key"></a> [create\_kms\_key](#input\_create\_kms\_key) | Controls if a KMS key for cluster encryption should be created | `bool` | `true` | no |
+| <a name="input_dynamodb_access"></a> [dynamodb\_access](#input\_dynamodb\_access) | List of DynamoDB access configs. Each entry gets its own IAM role (namespace + service\_account + table\_arns + mode). Do not use namespace 'default' or 'kube-system'. | <pre>list(object({<br/>    namespace       = string<br/>    service_account = string<br/>    table_arns      = list(string)<br/>    mode            = optional(string, "read_only") # read_only, read_write<br/>  }))</pre> | `[]` | no |
+| <a name="input_dynamodb_identity_type"></a> [dynamodb\_identity\_type](#input\_dynamodb\_identity\_type) | Identity type for DynamoDB access. Use 'pod\_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
 | <a name="input_ebs_csi_driver_identity_type"></a> [ebs\_csi\_driver\_identity\_type](#input\_ebs\_csi\_driver\_identity\_type) | Identity type for EBS CSI driver. Use 'pod\_identity' to create Pod Identity association; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
 | <a name="input_ebs_csi_driver_namespace"></a> [ebs\_csi\_driver\_namespace](#input\_ebs\_csi\_driver\_namespace) | Kubernetes namespace for EBS CSI driver service account. Used for IRSA OIDC condition and when ebs\_csi\_driver\_identity\_type = 'pod\_identity'. | `string` | `"aws-ebs-csi-driver"` | no |
 | <a name="input_ebs_csi_driver_service_account"></a> [ebs\_csi\_driver\_service\_account](#input\_ebs\_csi\_driver\_service\_account) | Kubernetes service account name for EBS CSI driver. Used for IRSA OIDC condition and when ebs\_csi\_driver\_identity\_type = 'pod\_identity'. | `string` | `"ebs-csi-controller-sa"` | no |
@@ -324,15 +344,20 @@ No modules.
 | <a name="input_enable_automode"></a> [enable\_automode](#input\_enable\_automode) | Enable EKS Auto Mode. Mutually exclusive with eks\_managed\_node\_groups. | `bool` | `false` | no |
 | <a name="input_enable_aws_load_balancer_controller"></a> [enable\_aws\_load\_balancer\_controller](#input\_enable\_aws\_load\_balancer\_controller) | Whether to create IAM role for AWS Load Balancer Controller (IRSA) | `bool` | `false` | no |
 | <a name="input_enable_cluster_creator_admin_permissions"></a> [enable\_cluster\_creator\_admin\_permissions](#input\_enable\_cluster\_creator\_admin\_permissions) | Indicates whether or not to add the cluster creator (the identity used by Terraform) as an administrator via access entry | `bool` | `false` | no |
+| <a name="input_enable_dynamodb_access"></a> [enable\_dynamodb\_access](#input\_enable\_dynamodb\_access) | Whether to create IAM roles for DynamoDB access (IRSA or Pod Identity per dynamodb\_identity\_type). One role per dynamodb\_access entry. | `bool` | `false` | no |
 | <a name="input_enable_ebs_csi_driver"></a> [enable\_ebs\_csi\_driver](#input\_enable\_ebs\_csi\_driver) | Whether to create IAM role for EBS CSI driver (IRSA or Pod Identity per ebs\_csi\_driver\_identity\_type) | `bool` | `false` | no |
 | <a name="input_enable_external_dns"></a> [enable\_external\_dns](#input\_enable\_external\_dns) | Whether to create IAM role for ExternalDNS (IRSA or Pod Identity per external\_dns\_identity\_type) | `bool` | `false` | no |
+| <a name="input_enable_kinesis_access"></a> [enable\_kinesis\_access](#input\_enable\_kinesis\_access) | Whether to create IAM roles for Kinesis access (IRSA or Pod Identity per kinesis\_identity\_type). One role per kinesis\_access entry. | `bool` | `false` | no |
 | <a name="input_enable_s3"></a> [enable\_s3](#input\_enable\_s3) | Whether to create IAM roles for S3 access (IRSA or Pod Identity per s3\_identity\_type). One role per s3\_access entry. | `bool` | `false` | no |
 | <a name="input_enable_secrets_manager"></a> [enable\_secrets\_manager](#input\_enable\_secrets\_manager) | Whether to create IAM role for Secrets Manager (IRSA or Pod Identity per secrets\_manager\_identity\_type) | `bool` | `false` | no |
+| <a name="input_enable_sqs_access"></a> [enable\_sqs\_access](#input\_enable\_sqs\_access) | Whether to create IAM roles for SQS access (IRSA or Pod Identity per sqs\_identity\_type). One role per sqs\_access entry. | `bool` | `false` | no |
 | <a name="input_enabled_cluster_log_types"></a> [enabled\_cluster\_log\_types](#input\_enabled\_cluster\_log\_types) | List of control plane logging types to enable | `list(string)` | <pre>[<br/>  "api",<br/>  "audit",<br/>  "authenticator"<br/>]</pre> | no |
 | <a name="input_endpoint_public_access"></a> [endpoint\_public\_access](#input\_endpoint\_public\_access) | Whether the Amazon EKS public API server endpoint is enabled | `bool` | `true` | no |
 | <a name="input_external_dns_identity_type"></a> [external\_dns\_identity\_type](#input\_external\_dns\_identity\_type) | Identity type for External DNS. Use 'pod\_identity' to create Pod Identity association; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
 | <a name="input_external_dns_namespace"></a> [external\_dns\_namespace](#input\_external\_dns\_namespace) | Kubernetes namespace for External DNS service account (Pod Identity). Used when external\_dns\_identity\_type = 'pod\_identity'. | `string` | `"external-dns"` | no |
 | <a name="input_external_dns_service_account"></a> [external\_dns\_service\_account](#input\_external\_dns\_service\_account) | Kubernetes service account name for External DNS (Pod Identity). | `string` | `"external-dns"` | no |
+| <a name="input_kinesis_access"></a> [kinesis\_access](#input\_kinesis\_access) | List of Kinesis access configs. Each entry gets its own IAM role (namespace + service\_account + stream\_arns + mode). Do not use namespace 'default' or 'kube-system'. | <pre>list(object({<br/>    namespace       = string<br/>    service_account = string<br/>    stream_arns     = list(string)<br/>    mode            = optional(string, "consumer") # consumer, read_only<br/>  }))</pre> | `[]` | no |
+| <a name="input_kinesis_identity_type"></a> [kinesis\_identity\_type](#input\_kinesis\_identity\_type) | Identity type for Kinesis access. Use 'pod\_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
 | <a name="input_kubernetes_version"></a> [kubernetes\_version](#input\_kubernetes\_version) | Kubernetes version to use for the EKS cluster | `string` | n/a | yes |
 | <a name="input_name"></a> [name](#input\_name) | Name of the EKS cluster | `string` | n/a | yes |
 | <a name="input_private_access_cidrs"></a> [private\_access\_cidrs](#input\_private\_access\_cidrs) | List of CIDR blocks that can access the Amazon EKS private API server endpoint | `list(string)` | `[]` | no |
@@ -345,6 +370,8 @@ No modules.
 | <a name="input_secrets_manager_identity_type"></a> [secrets\_manager\_identity\_type](#input\_secrets\_manager\_identity\_type) | Identity type for Secrets Manager. Use 'pod\_identity' to create Pod Identity association; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
 | <a name="input_secrets_manager_secret_name_prefixes"></a> [secrets\_manager\_secret\_name\_prefixes](#input\_secrets\_manager\_secret\_name\_prefixes) | List of secret name prefixes (e.g. ['bitwarden/sm-operator']) for least-privilege policy. When non-empty, creates custom policy with GetSecretValue+DescribeSecret instead of AWSSecretsManagerClientReadOnlyAccess. | `list(string)` | `[]` | no |
 | <a name="input_service_ipv4_cidr"></a> [service\_ipv4\_cidr](#input\_service\_ipv4\_cidr) | IPv4 CIDR block for Kubernetes services. Required for all clusters. Must not overlap with VPC CIDR. If not provided, EKS will auto-assign. | `string` | `null` | no |
+| <a name="input_sqs_access"></a> [sqs\_access](#input\_sqs\_access) | List of SQS access configs. Each entry gets its own IAM role (namespace + service\_account + queue\_arns + mode). Do not use namespace 'default' or 'kube-system'. | <pre>list(object({<br/>    namespace       = string<br/>    service_account = string<br/>    queue_arns      = list(string)<br/>    mode            = optional(string, "consumer") # consumer, read_only<br/>  }))</pre> | `[]` | no |
+| <a name="input_sqs_identity_type"></a> [sqs\_identity\_type](#input\_sqs\_identity\_type) | Identity type for SQS access. Use 'pod\_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | Subnet IDs for EKS cluster control plane (should include both public and private) | `list(string)` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | Map of tags to apply to all resources | `map(string)` | `{}` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | VPC ID where the cluster is deployed | `string` | n/a | yes |
@@ -378,9 +405,11 @@ No modules.
 | <a name="output_cluster_service_cidr"></a> [cluster\_service\_cidr](#output\_cluster\_service\_cidr) | The IPv4 CIDR block where Kubernetes pod and service IP addresses are assigned from |
 | <a name="output_cluster_service_ipv6_cidr"></a> [cluster\_service\_ipv6\_cidr](#output\_cluster\_service\_ipv6\_cidr) | The IPv6 CIDR block where Kubernetes pod and service IP addresses are assigned from (when ip\_family is ipv6) |
 | <a name="output_cluster_version"></a> [cluster\_version](#output\_cluster\_version) | The Kubernetes version for the cluster |
+| <a name="output_dynamodb_role_arns"></a> [dynamodb\_role\_arns](#output\_dynamodb\_role\_arns) | Map of IAM role ARNs for DynamoDB access (when enable\_dynamodb\_access), keyed by namespace/service\_account |
 | <a name="output_ebs_csi_driver_role_arn"></a> [ebs\_csi\_driver\_role\_arn](#output\_ebs\_csi\_driver\_role\_arn) | IAM role ARN for EBS CSI driver (when enabled) |
 | <a name="output_eks_managed_node_groups"></a> [eks\_managed\_node\_groups](#output\_eks\_managed\_node\_groups) | Map of attribute maps for all EKS managed node groups created |
 | <a name="output_external_dns_role_arn"></a> [external\_dns\_role\_arn](#output\_external\_dns\_role\_arn) | IAM role ARN for ExternalDNS (when enabled) |
+| <a name="output_kinesis_role_arns"></a> [kinesis\_role\_arns](#output\_kinesis\_role\_arns) | Map of IAM role ARNs for Kinesis access (when enable\_kinesis\_access), keyed by namespace/service\_account |
 | <a name="output_kms_key_arn"></a> [kms\_key\_arn](#output\_kms\_key\_arn) | The Amazon Resource Name (ARN) of the key |
 | <a name="output_kms_key_id"></a> [kms\_key\_id](#output\_kms\_key\_id) | The globally unique identifier for the key |
 | <a name="output_launch_templates"></a> [launch\_templates](#output\_launch\_templates) | Map of launch templates created for node groups |
@@ -391,6 +420,7 @@ No modules.
 | <a name="output_oidc_provider_arn"></a> [oidc\_provider\_arn](#output\_oidc\_provider\_arn) | The ARN of the OIDC Provider |
 | <a name="output_s3_role_arns"></a> [s3\_role\_arns](#output\_s3\_role\_arns) | Map of IAM role ARNs for S3 access (when enable\_s3), keyed by namespace/service\_account |
 | <a name="output_secrets_manager_role_arn"></a> [secrets\_manager\_role\_arn](#output\_secrets\_manager\_role\_arn) | IAM role ARN for Secrets Manager (when enabled) |
+| <a name="output_sqs_role_arns"></a> [sqs\_role\_arns](#output\_sqs\_role\_arns) | Map of IAM role ARNs for SQS access (when enable\_sqs\_access), keyed by namespace/service\_account |
 <!-- END_TF_DOCS -->
 
 ## Connecting to the Cluster
