@@ -145,6 +145,21 @@ output "s3_role_arns" {
   value       = { for k, r in aws_iam_role.s3 : k => r.arn }
 }
 
+output "sqs_role_arns" {
+  description = "Map of IAM role ARNs for SQS access (when enable_sqs_access), keyed by namespace/service_account"
+  value       = { for k, r in aws_iam_role.sqs : k => r.arn }
+}
+
+output "kinesis_role_arns" {
+  description = "Map of IAM role ARNs for Kinesis access (when enable_kinesis_access), keyed by namespace/service_account"
+  value       = { for k, r in aws_iam_role.kinesis : k => r.arn }
+}
+
+output "dynamodb_role_arns" {
+  description = "Map of IAM role ARNs for DynamoDB access (when enable_dynamodb_access), keyed by namespace/service_account"
+  value       = { for k, r in aws_iam_role.dynamodb : k => r.arn }
+}
+
 output "cluster_pod_identity_associations" {
   description = "Map of EKS Pod Identity associations (addon, ALB controller, External DNS, EBS CSI driver, Secrets Manager, S3) when using Pod Identity"
   value = merge(
@@ -153,7 +168,10 @@ output "cluster_pod_identity_associations" {
     length(aws_eks_pod_identity_association.external_dns) > 0 ? { "external_dns" = aws_eks_pod_identity_association.external_dns[0] } : {},
     length(aws_eks_pod_identity_association.ebs_csi_driver) > 0 ? { "ebs_csi_driver" = aws_eks_pod_identity_association.ebs_csi_driver[0] } : {},
     { for k, v in aws_eks_pod_identity_association.secrets_manager : "secrets_manager_${k}" => v },
-    { for k, v in aws_eks_pod_identity_association.s3 : "s3_${k}" => v }
+    { for k, v in aws_eks_pod_identity_association.s3 : "s3_${k}" => v },
+    { for k, v in aws_eks_pod_identity_association.sqs : "sqs_${k}" => v },
+    { for k, v in aws_eks_pod_identity_association.kinesis : "kinesis_${k}" => v },
+    { for k, v in aws_eks_pod_identity_association.dynamodb : "dynamodb_${k}" => v }
   )
 }
 

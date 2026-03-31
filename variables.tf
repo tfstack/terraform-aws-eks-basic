@@ -361,6 +361,90 @@ variable "s3_access" {
   default = []
 }
 
+variable "enable_sqs_access" {
+  description = "Whether to create IAM roles for SQS access (IRSA or Pod Identity per sqs_identity_type). One role per sqs_access entry."
+  type        = bool
+  default     = false
+}
+
+variable "sqs_identity_type" {
+  description = "Identity type for SQS access. Use 'pod_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon."
+  type        = string
+  default     = "irsa"
+
+  validation {
+    condition     = contains(["irsa", "pod_identity"], var.sqs_identity_type)
+    error_message = "sqs_identity_type must be 'irsa' or 'pod_identity'."
+  }
+}
+
+variable "sqs_access" {
+  description = "List of SQS access configs. Each entry gets its own IAM role (namespace + service_account + queue_arns + mode). Do not use namespace 'default' or 'kube-system'."
+  type = list(object({
+    namespace       = string
+    service_account = string
+    queue_arns      = list(string)
+    mode            = optional(string, "consumer") # consumer, read_only
+  }))
+  default = []
+}
+
+variable "enable_kinesis_access" {
+  description = "Whether to create IAM roles for Kinesis access (IRSA or Pod Identity per kinesis_identity_type). One role per kinesis_access entry."
+  type        = bool
+  default     = false
+}
+
+variable "kinesis_identity_type" {
+  description = "Identity type for Kinesis access. Use 'pod_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon."
+  type        = string
+  default     = "irsa"
+
+  validation {
+    condition     = contains(["irsa", "pod_identity"], var.kinesis_identity_type)
+    error_message = "kinesis_identity_type must be 'irsa' or 'pod_identity'."
+  }
+}
+
+variable "kinesis_access" {
+  description = "List of Kinesis access configs. Each entry gets its own IAM role (namespace + service_account + stream_arns + mode). Do not use namespace 'default' or 'kube-system'."
+  type = list(object({
+    namespace       = string
+    service_account = string
+    stream_arns     = list(string)
+    mode            = optional(string, "consumer") # consumer, read_only
+  }))
+  default = []
+}
+
+variable "enable_dynamodb_access" {
+  description = "Whether to create IAM roles for DynamoDB access (IRSA or Pod Identity per dynamodb_identity_type). One role per dynamodb_access entry."
+  type        = bool
+  default     = false
+}
+
+variable "dynamodb_identity_type" {
+  description = "Identity type for DynamoDB access. Use 'pod_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon."
+  type        = string
+  default     = "irsa"
+
+  validation {
+    condition     = contains(["irsa", "pod_identity"], var.dynamodb_identity_type)
+    error_message = "dynamodb_identity_type must be 'irsa' or 'pod_identity'."
+  }
+}
+
+variable "dynamodb_access" {
+  description = "List of DynamoDB access configs. Each entry gets its own IAM role (namespace + service_account + table_arns + mode). Do not use namespace 'default' or 'kube-system'."
+  type = list(object({
+    namespace       = string
+    service_account = string
+    table_arns      = list(string)
+    mode            = optional(string, "read_only") # read_only, read_write
+  }))
+  default = []
+}
+
 variable "addon_identity_type" {
   description = "Identity type for addons that need IAM (e.g. EBS CSI driver). Use 'pod_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon and addon_service_accounts."
   type        = string

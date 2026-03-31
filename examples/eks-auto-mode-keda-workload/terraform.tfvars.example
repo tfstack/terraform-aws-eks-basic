@@ -1,0 +1,16 @@
+# Copy to terraform.tfvars and set your values.
+# Add terraform.tfvars to .gitignore if it contains account-specific data.
+
+access_entries = {
+  admin = {
+    principal_arn = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
+    type          = "STANDARD"
+    policy_associations = {
+      admin = {
+        policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+        access_scope = { type = "cluster" }
+      }
+    }
+  }
+}
+

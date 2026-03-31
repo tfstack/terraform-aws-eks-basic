@@ -137,6 +137,16 @@ secrets_manager_secret_name_prefixes = ["bitwarden/sm-operator"]
 
 See **[examples/pod-identity](examples/pod-identity/)** for a full example.
 
+## Workload AWS access (SQS, Kinesis, DynamoDB)
+
+This module can create **per-workload IAM roles** (one per `namespace/service_account`) for common AWS services used by worker applications (including KEDA-managed workers). Each feature supports **IRSA** or **EKS Pod Identity** via an `*_identity_type` toggle.
+
+- **SQS**: `enable_sqs_access`, `sqs_identity_type`, `sqs_access = [{ namespace, service_account, queue_arns, mode }]`
+- **Kinesis**: `enable_kinesis_access`, `kinesis_identity_type`, `kinesis_access = [{ namespace, service_account, stream_arns, mode }]`
+- **DynamoDB**: `enable_dynamodb_access`, `dynamodb_identity_type`, `dynamodb_access = [{ namespace, service_account, table_arns, mode }]`
+
+When using Pod Identity for any of these, ensure the **eks-pod-identity-agent** addon is enabled (Auto Mode includes it by default).
+
 ### Secrets Manager (Secrets Store CSI Driver)
 
 When `enable_secrets_manager = true`, the module creates an IAM role for **workload pods** that mount secrets via the Secrets Store CSI Driver. The CSI driver itself runs in `kube-system` and does not need IAM.
@@ -167,6 +177,7 @@ EKS automatically creates an access entry for each capability role with default 
 - **[examples/eks-capabilities](examples/eks-capabilities/)** - Platform engineering example with EKS capabilities (ACK, KRO, Argo CD)
 - **[examples/eks-capabilities-private](examples/eks-capabilities-private/)** - Private-only EKS and Argo CD (VPC endpoints; access from within VPC)
 - **[examples/eks-auto-mode](examples/eks-auto-mode/)** - EKS cluster with Auto Mode (compute auto-provisioned; no managed node groups)
+- **[examples/eks-auto-mode-keda-workload](examples/eks-auto-mode-keda-workload/)** - Auto Mode + workload IAM wiring example (SQS; suitable for KEDA-managed workers)
 - **[examples/private-endpoint](examples/private-endpoint/)** - EKS with private API endpoint
 
 <!-- BEGIN_TF_DOCS -->
