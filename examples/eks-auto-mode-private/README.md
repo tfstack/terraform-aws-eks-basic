@@ -50,7 +50,8 @@ When Argo CD is enabled, this example wires the **argocd-codeconnections** submo
   ```bash
   export REGION=$(terraform output -raw aws_region)
   export ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
-  export CONN_ID=$(terraform output -json argocd_connection_ids | jq -r '.github')
+  export CONN_ID=$(terraform output -json argocd_connection_ids | jq -r '.["github"]')
+  # If your connection name has hyphens (e.g. eks-1-github), use: jq -r '.["eks-1-github"]'
   export OWNER_REPO="my-org/my-repo"   # your org and repo
   kubectl create secret generic argocd-repo-github -n argocd --from-literal=url="https://codeconnections.${REGION}.amazonaws.com/git-http/${ACCOUNT}/${REGION}/${CONN_ID}/${OWNER_REPO}.git"
   kubectl label secret argocd-repo-github -n argocd argocd.argoproj.io/secret-type=repository
