@@ -29,8 +29,8 @@ This directory contains detailed documentation for the module's design decisions
 
 The module is organized into focused files:
 
-- `main.tf` - Core cluster, node groups, addons, and OIDC provider
-- `access-entries.tf` - EKS access entries for authentication
+- `main.tf` - Core cluster, node groups, addons, access entries, and OIDC provider
+- `fargate.tf` - Optional Fargate pod execution role (create or BYO ARN), profiles, access entry; related variables in `variables.tf`
 - `capabilities.tf` - EKS Capabilities (ACK, KRO, ArgoCD)
 - `capabilities-iam.tf` - IAM roles for capabilities
 - `addons-iam.tf` - IAM roles for addons (IRSA)

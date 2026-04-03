@@ -457,3 +457,94 @@ run "eks_automode" {
     error_message = "EC2 node IAM role should not be created when using Auto Mode (no managed node groups)"
   }
 }
+
+run "eks_fargate_profiles" {
+  command = plan
+
+  variables {
+    name               = "test-eks-fargate"
+    kubernetes_version = "1.35"
+    vpc_id             = "vpc-12345678"
+    subnet_ids         = ["subnet-private-a", "subnet-private-b"]
+    fargate_profiles = {
+      kube-system = {
+        selectors = [{ namespace = "kube-system" }]
+      }
+    }
+  }
+
+  assert {
+    condition     = length(aws_iam_role.eks_fargate) == 1
+    error_message = "Fargate pod execution IAM role should be created when fargate_profiles is set and create_fargate_pod_execution_role is true"
+  }
+
+  assert {
+    condition     = length(aws_eks_fargate_profile.this) == 1
+    error_message = "One Fargate profile should be created for kube-system"
+  }
+
+  assert {
+    condition     = length(aws_eks_access_entry.fargate) == 1
+    error_message = "Fargate access entry should exist for API_AND_CONFIG_MAP default auth"
+  }
+}
+
+run "eks_fargate_byo_execution_role" {
+  command = plan
+
+  variables {
+    name                              = "test-eks-fargate-byo"
+    kubernetes_version                = "1.35"
+    vpc_id                            = "vpc-12345678"
+    subnet_ids                        = ["subnet-private-a", "subnet-private-b"]
+    create_fargate_pod_execution_role = false
+    fargate_pod_execution_role_arn    = "arn:aws:iam::123456789012:role/existing-fargate-pod-exec"
+    fargate_profiles = {
+      app = {
+        selectors = [{ namespace = "app" }]
+      }
+    }
+  }
+
+  assert {
+    condition     = length(aws_iam_role.eks_fargate) == 0
+    error_message = "Module should not create Fargate execution role when create_fargate_pod_execution_role is false"
+  }
+
+  assert {
+    condition     = aws_eks_fargate_profile.this["app"].pod_execution_role_arn == "arn:aws:iam::123456789012:role/existing-fargate-pod-exec"
+    error_message = "Fargate profile should use the supplied pod execution role ARN"
+  }
+
+  assert {
+    condition     = length(aws_eks_access_entry.fargate) == 1
+    error_message = "Fargate access entry should still be created for the supplied execution role ARN"
+  }
+}
+
+run "eks_fargate_skip_access_entry" {
+  command = plan
+
+  variables {
+    name                        = "test-eks-fargate-no-ae"
+    kubernetes_version          = "1.35"
+    vpc_id                      = "vpc-12345678"
+    subnet_ids                  = ["subnet-private-a", "subnet-private-b"]
+    create_fargate_access_entry = false
+    fargate_profiles = {
+      app = {
+        selectors = [{ namespace = "app" }]
+      }
+    }
+  }
+
+  assert {
+    condition     = length(aws_eks_access_entry.fargate) == 0
+    error_message = "No Fargate access entry when create_fargate_access_entry is false"
+  }
+
+  assert {
+    condition     = length(aws_iam_role.eks_fargate) == 1
+    error_message = "Pod execution role still created when only access entry is skipped"
+  }
+}

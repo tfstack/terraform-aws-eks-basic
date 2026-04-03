@@ -227,6 +227,25 @@ output "cluster_addons" {
 }
 
 ################################################################################
+# Fargate
+################################################################################
+
+output "fargate_role_arn" {
+  description = "Fargate pod execution IAM role ARN in use (module-created or supplied via fargate_pod_execution_role_arn when fargate_profiles is non-empty)"
+  value       = local.fargate_pod_execution_role_arn_effective
+}
+
+output "fargate_profiles" {
+  description = "Map of EKS Fargate profiles created"
+  value       = aws_eks_fargate_profile.this
+}
+
+output "fargate_access_entry_arn" {
+  description = "ARN of the module-managed Fargate access entry (when created)"
+  value       = try(aws_eks_access_entry.fargate[0].access_entry_arn, null)
+}
+
+################################################################################
 # EKS Managed Node Groups
 ################################################################################
 
