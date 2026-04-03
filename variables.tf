@@ -540,6 +540,89 @@ variable "automode_node_pools" {
 }
 
 ################################################################################
+# Fargate Configuration
+################################################################################
+
+variable "fargate_profiles" {
+  description = "Map of EKS Fargate profile configurations (key = profile name). Fargate pods require private subnets with NAT gateway access. Per-profile subnet_ids override the module-level subnet_ids. Pod execution IAM is controlled by create_fargate_pod_execution_role / fargate_pod_execution_role_arn. Access entry behavior: create_fargate_access_entry and fargate_access_entry_type when cluster_authentication_mode is API or API_AND_CONFIG_MAP; for CONFIG_MAP-only clusters you must grant the pod execution role access yourself (e.g. aws-auth)."
+  type = map(object({
+    selectors = list(object({
+      namespace = string
+      labels    = optional(map(string))
+    }))
+    subnet_ids = optional(list(string))
+    tags       = optional(map(string), {})
+  }))
+  default = {}
+
+  validation {
+    condition     = alltrue([for _, p in var.fargate_profiles : length(p.selectors) > 0])
+    error_message = "Each fargate_profiles entry must include at least one selector."
+  }
+}
+
+variable "create_fargate_pod_execution_role" {
+  description = "Whether to create the shared IAM role for Fargate pod execution. If false, set fargate_pod_execution_role_arn to an existing role ARN."
+  type        = bool
+  default     = true
+}
+
+variable "fargate_pod_execution_role_arn" {
+  description = "Existing IAM role ARN for Fargate pod execution when create_fargate_pod_execution_role is false. Leave null when the module creates the role."
+  type        = string
+  default     = null
+
+  validation {
+    condition = (
+      length(var.fargate_profiles) == 0
+      || var.create_fargate_pod_execution_role
+      || (try(var.fargate_pod_execution_role_arn, null) != null && var.fargate_pod_execution_role_arn != "")
+    )
+    error_message = "When fargate_profiles is non-empty and create_fargate_pod_execution_role is false, fargate_pod_execution_role_arn must be set to an existing IAM role ARN."
+  }
+
+  validation {
+    condition     = var.create_fargate_pod_execution_role ? try(var.fargate_pod_execution_role_arn, null) == null : true
+    error_message = "Do not set fargate_pod_execution_role_arn when create_fargate_pod_execution_role is true."
+  }
+}
+
+variable "fargate_pod_execution_role_name" {
+  description = "Name of the created Fargate pod execution IAM role (when create_fargate_pod_execution_role is true). Defaults to {name}-fargate-pod-execution."
+  type        = string
+  default     = null
+}
+
+variable "fargate_pod_execution_role_path" {
+  description = "IAM path for the created Fargate pod execution role (when create_fargate_pod_execution_role is true)."
+  type        = string
+  default     = "/"
+}
+
+variable "fargate_pod_execution_role_permissions_boundary" {
+  description = "ARN of a permissions boundary to attach to the created Fargate pod execution role (when create_fargate_pod_execution_role is true)."
+  type        = string
+  default     = null
+}
+
+variable "create_fargate_access_entry" {
+  description = "Whether to create an EKS access entry for the Fargate pod execution principal. Ignored when cluster_authentication_mode is CONFIG_MAP (no entry is created)."
+  type        = bool
+  default     = true
+}
+
+variable "fargate_access_entry_type" {
+  description = "Access entry type for the Fargate pod execution principal (when create_fargate_access_entry is true and auth is API-based). Must be a Fargate-compatible type accepted by AWS CreateAccessEntry."
+  type        = string
+  default     = "FARGATE_LINUX"
+
+  validation {
+    condition     = contains(["FARGATE_LINUX"], var.fargate_access_entry_type)
+    error_message = "fargate_access_entry_type must be FARGATE_LINUX."
+  }
+}
+
+################################################################################
 # Node Group Configuration
 ################################################################################
 

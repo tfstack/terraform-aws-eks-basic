@@ -344,13 +344,13 @@ resource "aws_eks_cluster" "this" {
     }
   }
 
-  dynamic "compute_config" {
-    for_each = var.enable_automode ? [1] : []
-    content {
-      enabled       = true
-      node_pools    = var.automode_node_pools
-      node_role_arn = aws_iam_role.eks_automode_nodes[0].arn
-    }
+  # AWS requires compute_config.enabled, elastic_load_balancing.enabled, and
+  # block_storage.enabled to be aligned (all true or all false). Omitting
+  # compute_config when Auto Mode is off violates that and fails plan/apply.
+  compute_config {
+    enabled       = var.enable_automode
+    node_pools    = var.enable_automode ? var.automode_node_pools : null
+    node_role_arn = length(aws_iam_role.eks_automode_nodes) > 0 ? aws_iam_role.eks_automode_nodes[0].arn : null
   }
 
   enabled_cluster_log_types = var.enabled_cluster_log_types

@@ -1,13 +1,12 @@
 # terraform-aws-eks-basic
 
-> **⚠️ Note**: This module supports **EC2 managed node groups** and **EKS Auto Mode**. Fargate is not available in this version.
-
-A Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Service) clusters with EC2 managed node groups and optional EKS Auto Mode.
+A Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Service) clusters with EC2 managed node groups, optional EKS Auto Mode, and optional Fargate profiles.
 
 ## Features
 
 - **EC2 Managed Node Groups**: Full support with customizable launch templates and auto-scaling
 - **EKS Auto Mode**: Optional; compute is auto-provisioned by AWS (no managed node groups; built-in node pools). Mutually exclusive with `eks_managed_node_groups`.
+- **Fargate profiles**: Optional via `fargate_profiles`; shared pod execution role (create or bring-your-own ARN), profiles, and optional API access entry (`create_fargate_access_entry`, `fargate_access_entry_type`). IAM options: `fargate_pod_execution_role_name`, `path`, `permissions_boundary`. See `examples/eks-fargate`.
 - **Dual-Stack Support**: IPv4 and IPv6 cluster support (IPv6 service CIDR auto-assigned by AWS)
 - **Modern EKS Access Entries**: Native EKS authentication via access entries (no aws-auth ConfigMap)
 - **IRSA and Pod Identity**: OIDC provider for IAM Roles for Service Accounts (IRSA); optional EKS Pod Identity per component (ALB controller, External DNS, addons, Secrets Manager). Choose per component via `*_identity_type` variables (`"irsa"` or `"pod_identity"`). When using Pod Identity, enable the **eks-pod-identity-agent** addon.
@@ -177,6 +176,7 @@ EKS automatically creates an access entry for each capability role with default 
 - **[examples/eks-capabilities](examples/eks-capabilities/)** - Platform engineering example with EKS capabilities (ACK, KRO, Argo CD)
 - **[examples/eks-capabilities-private](examples/eks-capabilities-private/)** - Private-only EKS and Argo CD (VPC endpoints; access from within VPC)
 - **[examples/eks-auto-mode](examples/eks-auto-mode/)** - EKS cluster with Auto Mode (compute auto-provisioned; no managed node groups)
+- **[examples/eks-fargate](examples/eks-fargate/)** - EKS with Fargate only (no EC2 nodes); CoreDNS on Fargate; IRSA for workload AWS credentials
 - **[examples/eks-auto-mode-keda-workload](examples/eks-auto-mode-keda-workload/)** - Auto Mode + workload IAM wiring example (SQS; suitable for KEDA-managed workers)
 - **[examples/private-endpoint](examples/private-endpoint/)** - EKS with private API endpoint
 
@@ -449,8 +449,8 @@ terraform test
 
 ```plaintext
 terraform-aws-eks-basic/
-├── main.tf              # Core EKS cluster, node groups, addons, OIDC provider
-├── access-entries.tf    # EKS access entries for authentication
+├── main.tf              # Core EKS cluster, node groups, addons, access entries, OIDC provider
+├── fargate.tf           # Optional Fargate execution role (create/BYO), profiles, access entry
 ├── capabilities.tf                 # EKS Capabilities (ACK, KRO, ArgoCD)
 ├── capabilities-iam.tf             # IAM roles for EKS Capabilities
 ├── capabilities-access-entries.tf # Optional access entry policy associations (e.g. ACK Secret Reader)
@@ -468,6 +468,7 @@ terraform-aws-eks-basic/
     ├── eks-capabilities/         # Platform engineering with capabilities
     ├── eks-capabilities-private/ # Private-only EKS and Argo CD
     ├── eks-auto-mode/            # EKS Auto Mode (no managed node groups)
+    ├── eks-fargate/              # Fargate (kube-system + app) + small MNG for Pod Identity agent
     ├── pod-identity/             # Pod Identity for ALB, External DNS, EBS CSI, Secrets Manager
     └── private-endpoint/         # EKS with private API endpoint
 ```
