@@ -209,6 +209,7 @@ No modules.
 |------|------|
 | [aws_cloudwatch_log_group.this_allow_destroy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
 | [aws_cloudwatch_log_group.this_prevent_destroy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
+| [aws_eks_access_entry.fargate](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_entry) | resource |
 | [aws_eks_access_entry.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_entry) | resource |
 | [aws_eks_access_policy_association.capability](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_policy_association) | resource |
 | [aws_eks_access_policy_association.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_policy_association) | resource |
@@ -216,6 +217,7 @@ No modules.
 | [aws_eks_addon.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_addon) | resource |
 | [aws_eks_capability.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_capability) | resource |
 | [aws_eks_cluster.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster) | resource |
+| [aws_eks_fargate_profile.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_fargate_profile) | resource |
 | [aws_eks_node_group.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_node_group) | resource |
 | [aws_eks_pod_identity_association.addon](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.aws_lb_controller](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
@@ -236,6 +238,7 @@ No modules.
 | [aws_iam_role.dynamodb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.ebs_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.eks_automode_nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role.eks_fargate](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.eks_nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.external_dns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.kinesis](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
@@ -257,6 +260,7 @@ No modules.
 | [aws_iam_role_policy_attachment.cluster_encryption](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.ebs_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.eks_automode_nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [aws_iam_role_policy_attachment.eks_fargate](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.eks_nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.secrets_manager](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.secrets_manager_parameter_store](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
@@ -289,6 +293,7 @@ No modules.
 | [aws_iam_policy_document.ebs_csi_driver_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.eks_automode_nodes_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.eks_cluster_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.eks_fargate_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.eks_nodes_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.external_dns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.external_dns_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -334,6 +339,8 @@ No modules.
 | <a name="input_cluster_encryption_config_resources"></a> [cluster\_encryption\_config\_resources](#input\_cluster\_encryption\_config\_resources) | List of strings with resources to be encrypted. Valid values: secrets | `list(string)` | <pre>[<br/>  "secrets"<br/>]</pre> | no |
 | <a name="input_cluster_ip_family"></a> [cluster\_ip\_family](#input\_cluster\_ip\_family) | IP family for the EKS cluster. Valid values: ipv4, ipv6 | `string` | `"ipv4"` | no |
 | <a name="input_create_cloudwatch_log_group"></a> [create\_cloudwatch\_log\_group](#input\_create\_cloudwatch\_log\_group) | Whether to create a CloudWatch log group for EKS cluster logs | `bool` | `true` | no |
+| <a name="input_create_fargate_access_entry"></a> [create\_fargate\_access\_entry](#input\_create\_fargate\_access\_entry) | Whether to create an EKS access entry for the Fargate pod execution principal. Ignored when cluster\_authentication\_mode is CONFIG\_MAP (no entry is created). | `bool` | `true` | no |
+| <a name="input_create_fargate_pod_execution_role"></a> [create\_fargate\_pod\_execution\_role](#input\_create\_fargate\_pod\_execution\_role) | Whether to create the shared IAM role for Fargate pod execution. If false, set fargate\_pod\_execution\_role\_arn to an existing role ARN. | `bool` | `true` | no |
 | <a name="input_create_kms_key"></a> [create\_kms\_key](#input\_create\_kms\_key) | Controls if a KMS key for cluster encryption should be created | `bool` | `true` | no |
 | <a name="input_dynamodb_access"></a> [dynamodb\_access](#input\_dynamodb\_access) | List of DynamoDB access configs. Each entry gets its own IAM role (namespace + service\_account + table\_arns + mode). Do not use namespace 'default' or 'kube-system'. | <pre>list(object({<br/>    namespace       = string<br/>    service_account = string<br/>    table_arns      = list(string)<br/>    mode            = optional(string, "read_only") # read_only, read_write<br/>  }))</pre> | `[]` | no |
 | <a name="input_dynamodb_identity_type"></a> [dynamodb\_identity\_type](#input\_dynamodb\_identity\_type) | Identity type for DynamoDB access. Use 'pod\_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
@@ -356,6 +363,12 @@ No modules.
 | <a name="input_external_dns_identity_type"></a> [external\_dns\_identity\_type](#input\_external\_dns\_identity\_type) | Identity type for External DNS. Use 'pod\_identity' to create Pod Identity association; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
 | <a name="input_external_dns_namespace"></a> [external\_dns\_namespace](#input\_external\_dns\_namespace) | Kubernetes namespace for External DNS service account (Pod Identity). Used when external\_dns\_identity\_type = 'pod\_identity'. | `string` | `"external-dns"` | no |
 | <a name="input_external_dns_service_account"></a> [external\_dns\_service\_account](#input\_external\_dns\_service\_account) | Kubernetes service account name for External DNS (Pod Identity). | `string` | `"external-dns"` | no |
+| <a name="input_fargate_access_entry_type"></a> [fargate\_access\_entry\_type](#input\_fargate\_access\_entry\_type) | Access entry type for the Fargate pod execution principal (when create\_fargate\_access\_entry is true and auth is API-based). Must be a Fargate-compatible type accepted by AWS CreateAccessEntry. | `string` | `"FARGATE_LINUX"` | no |
+| <a name="input_fargate_pod_execution_role_arn"></a> [fargate\_pod\_execution\_role\_arn](#input\_fargate\_pod\_execution\_role\_arn) | Existing IAM role ARN for Fargate pod execution when create\_fargate\_pod\_execution\_role is false. Leave null when the module creates the role. | `string` | `null` | no |
+| <a name="input_fargate_pod_execution_role_name"></a> [fargate\_pod\_execution\_role\_name](#input\_fargate\_pod\_execution\_role\_name) | Name of the created Fargate pod execution IAM role (when create\_fargate\_pod\_execution\_role is true). Defaults to {name}-fargate-pod-execution. | `string` | `null` | no |
+| <a name="input_fargate_pod_execution_role_path"></a> [fargate\_pod\_execution\_role\_path](#input\_fargate\_pod\_execution\_role\_path) | IAM path for the created Fargate pod execution role (when create\_fargate\_pod\_execution\_role is true). | `string` | `"/"` | no |
+| <a name="input_fargate_pod_execution_role_permissions_boundary"></a> [fargate\_pod\_execution\_role\_permissions\_boundary](#input\_fargate\_pod\_execution\_role\_permissions\_boundary) | ARN of a permissions boundary to attach to the created Fargate pod execution role (when create\_fargate\_pod\_execution\_role is true). | `string` | `null` | no |
+| <a name="input_fargate_profiles"></a> [fargate\_profiles](#input\_fargate\_profiles) | Map of EKS Fargate profile configurations (key = profile name). Fargate pods require private subnets with NAT gateway access. Per-profile subnet\_ids override the module-level subnet\_ids. Pod execution IAM is controlled by create\_fargate\_pod\_execution\_role / fargate\_pod\_execution\_role\_arn. Access entry behavior: create\_fargate\_access\_entry and fargate\_access\_entry\_type when cluster\_authentication\_mode is API or API\_AND\_CONFIG\_MAP; for CONFIG\_MAP-only clusters you must grant the pod execution role access yourself (e.g. aws-auth). | <pre>map(object({<br/>    selectors = list(object({<br/>      namespace = string<br/>      labels    = optional(map(string))<br/>    }))<br/>    subnet_ids = optional(list(string))<br/>    tags       = optional(map(string), {})<br/>  }))</pre> | `{}` | no |
 | <a name="input_kinesis_access"></a> [kinesis\_access](#input\_kinesis\_access) | List of Kinesis access configs. Each entry gets its own IAM role (namespace + service\_account + stream\_arns + mode). Do not use namespace 'default' or 'kube-system'. | <pre>list(object({<br/>    namespace       = string<br/>    service_account = string<br/>    stream_arns     = list(string)<br/>    mode            = optional(string, "consumer") # consumer, read_only<br/>  }))</pre> | `[]` | no |
 | <a name="input_kinesis_identity_type"></a> [kinesis\_identity\_type](#input\_kinesis\_identity\_type) | Identity type for Kinesis access. Use 'pod\_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
 | <a name="input_kubernetes_version"></a> [kubernetes\_version](#input\_kubernetes\_version) | Kubernetes version to use for the EKS cluster | `string` | n/a | yes |
@@ -409,6 +422,9 @@ No modules.
 | <a name="output_ebs_csi_driver_role_arn"></a> [ebs\_csi\_driver\_role\_arn](#output\_ebs\_csi\_driver\_role\_arn) | IAM role ARN for EBS CSI driver (when enabled) |
 | <a name="output_eks_managed_node_groups"></a> [eks\_managed\_node\_groups](#output\_eks\_managed\_node\_groups) | Map of attribute maps for all EKS managed node groups created |
 | <a name="output_external_dns_role_arn"></a> [external\_dns\_role\_arn](#output\_external\_dns\_role\_arn) | IAM role ARN for ExternalDNS (when enabled) |
+| <a name="output_fargate_access_entry_arn"></a> [fargate\_access\_entry\_arn](#output\_fargate\_access\_entry\_arn) | ARN of the module-managed Fargate access entry (when created) |
+| <a name="output_fargate_profiles"></a> [fargate\_profiles](#output\_fargate\_profiles) | Map of EKS Fargate profiles created |
+| <a name="output_fargate_role_arn"></a> [fargate\_role\_arn](#output\_fargate\_role\_arn) | Fargate pod execution IAM role ARN in use (module-created or supplied via fargate\_pod\_execution\_role\_arn when fargate\_profiles is non-empty) |
 | <a name="output_kinesis_role_arns"></a> [kinesis\_role\_arns](#output\_kinesis\_role\_arns) | Map of IAM role ARNs for Kinesis access (when enable\_kinesis\_access), keyed by namespace/service\_account |
 | <a name="output_kms_key_arn"></a> [kms\_key\_arn](#output\_kms\_key\_arn) | The Amazon Resource Name (ARN) of the key |
 | <a name="output_kms_key_id"></a> [kms\_key\_id](#output\_kms\_key\_id) | The globally unique identifier for the key |
