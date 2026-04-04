@@ -6,7 +6,7 @@ A Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Serv
 
 - **EC2 Managed Node Groups**: Full support with customizable launch templates and auto-scaling
 - **EKS Auto Mode**: Optional; compute is auto-provisioned by AWS (no managed node groups; built-in node pools). Mutually exclusive with `eks_managed_node_groups`.
-- **Fargate profiles**: Optional via `fargate_profiles`; shared pod execution role (create or bring-your-own ARN), profiles, and optional API access entry (`create_fargate_access_entry`, `fargate_access_entry_type`). IAM options: `fargate_pod_execution_role_name`, `path`, `permissions_boundary`. See `examples/eks-fargate`.
+- **Fargate profiles**: Optional via `fargate_profiles`; shared pod execution role (create or bring-your-own ARN), profiles, and optional API access entry (`create_fargate_access_entry`, `fargate_access_entry_type`). IAM options: `fargate_pod_execution_role_name`, `path`, `permissions_boundary`. See `examples/fargate`.
 - **Dual-Stack Support**: IPv4 and IPv6 cluster support (IPv6 service CIDR auto-assigned by AWS)
 - **Modern EKS Access Entries**: Native EKS authentication via access entries (no aws-auth ConfigMap)
 - **IRSA and Pod Identity**: OIDC provider for IAM Roles for Service Accounts (IRSA); optional EKS Pod Identity per component (ALB controller, External DNS, addons, Secrets Manager). Choose per component via `*_identity_type` variables (`"irsa"` or `"pod_identity"`). When using Pod Identity, enable the **eks-pod-identity-agent** addon.
@@ -19,7 +19,7 @@ A Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Serv
 ## Prerequisites
 
 | Name | Version |
-| ---- | ------- |
+| --- | --- |
 | terraform | >= 1.6.0 |
 | aws | >= 6.0 |
 | kubernetes | ~> 2.30 |
@@ -171,15 +171,121 @@ EKS automatically creates an access entry for each capability role with default 
 
 ## Examples
 
-- **[examples/basic](examples/basic/)** - Basic EKS cluster with EC2 node groups
-- **[examples/pod-identity](examples/pod-identity/)** - EKS cluster using Pod Identity for ALB controller, External DNS, EBS CSI addon, and Secrets Manager
-- **[examples/eks-capabilities](examples/eks-capabilities/)** - Platform engineering example with EKS capabilities (ACK, KRO, Argo CD)
-- **[examples/eks-capabilities-private](examples/eks-capabilities-private/)** - Private-only EKS and Argo CD (VPC endpoints; access from within VPC)
-- **[examples/eks-auto-mode](examples/eks-auto-mode/)** - EKS cluster with Auto Mode (compute auto-provisioned; no managed node groups)
-- **[examples/eks-fargate](examples/eks-fargate/)** - EKS with Fargate only (no EC2 nodes); CoreDNS on Fargate; IRSA for workload AWS credentials
-- **[examples/eks-auto-mode-keda-workload](examples/eks-auto-mode-keda-workload/)** - Auto Mode + workload IAM wiring example (SQS; suitable for KEDA-managed workers)
-- **[examples/private-endpoint](examples/private-endpoint/)** - EKS with private API endpoint
+| Example | Compute mode | Capabilities | Argo CD | Notes |
+| --- | --- | --- | --- | --- |
+| [minimal](examples/minimal/) | Auto Mode | None | No | BYO VPC/subnets; smallest possible usage |
+| [basic](examples/basic/) | EC2 (managed node groups) | ACK, KRO, optional Argo CD | Optional | Full feature set for classic EC2 |
+| [auto-mode](examples/auto-mode/) | Auto Mode | ACK, KRO, optional Argo CD | Optional | Full feature set for Auto Mode |
+| [fargate](examples/fargate/) | Fargate only | ACK, KRO, optional Argo CD | Optional | No EC2 nodes; IRSA for workload IAM |
+| [auto-mode-private](examples/auto-mode-private/) | Auto Mode | ACK, KRO, Argo CD | Private (VPCE) | BYO VPC; private API + private Argo CD UI |
+| [capabilities](examples/capabilities/) | Auto Mode | ACK, KRO, Argo CD | Public | Platform engineering reference |
+| [capabilities-private](examples/capabilities-private/) | Auto Mode | ACK, KRO, Argo CD | Private (VPCE) | Private API + private Argo CD UI |
+| [pod-identity](examples/pod-identity/) | EC2 | None | No | Pod Identity for ALB, External DNS, EBS CSI, Secrets Manager |
+| [auto-mode-keda-workload](examples/auto-mode-keda-workload/) | Auto Mode | None | No | SQS IAM for KEDA-managed workers |
+| [private-endpoint](examples/private-endpoint/) | EC2 | None | No | Private API endpoint only |
+| [multi-cluster-shared-vpc](examples/multi-cluster-shared-vpc/) | EC2 + Fargate + Auto Mode | ACK, KRO, optional Argo CD (per cluster) | Optional | One VPC; three clusters; separate Argo CD and CodeConnections each |
+| [hub-spoke-argocd](examples/hub-spoke-argocd/) | Auto Mode (×3) | ACK, KRO, Argo CD on hub only | Required | Hub-and-spoke GitOps: Argo CD on hub deploys to two spoke clusters via access entries |
 
+## Feature Reference
+
+### Compute mode
+
+| Feature | Auto Mode | Fargate | EC2 (managed node groups) |
+| --- | --- | --- | --- |
+| `enable_automode` | `true` | — | — |
+| `eks_managed_node_groups` | Not set (mutually exclusive) | — | Set map of node groups |
+| `fargate_profiles` | — | Required | — |
+| Pod Identity Agent | Built-in (no addon needed) | Not supported | Install `eks-pod-identity-agent` addon |
+| EBS CSI Driver | Pod Identity supported | Not applicable (no EBS on Fargate) | Pod Identity or IRSA |
+| Secrets Manager IAM | Pod Identity (`"pod_identity"`) | IRSA only (`"irsa"`) | Pod Identity or IRSA |
+| CoreDNS | Built-in | Set `computeType = "fargate"` in addon | Standard addon |
+| kube-proxy / vpc-cni | Built-in | Only vpc-cni addon needed | Standard addons |
+
+### Argo CD capability
+
+To enable Argo CD, set `argocd_idc_instance_arn` (AWS IAM Identity Center required):
+
+```hcl
+capabilities = merge(
+  { ack = {}, kro = {} },
+  var.argocd_idc_instance_arn != null ? {
+    argocd = {
+      access_entry_policy_associations = [{
+        policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+        access_scope = { type = "cluster" }
+      }]
+      configuration = {
+        argo_cd = {
+          namespace        = "argocd"
+          aws_idc          = { idc_instance_arn = var.argocd_idc_instance_arn, idc_region = var.aws_region }
+          rbac_role_mapping = var.argocd_rbac_role_mappings
+          network_access   = { vpce_ids = var.argocd_vpce_ids }
+        }
+      }
+    }
+  } : {}
+)
+```
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `argocd_idc_instance_arn` | Yes | IAM Identity Center instance ARN. When `null`, Argo CD is not created. |
+| `argocd_rbac_role_mappings` | No | IdC users/groups → Argo CD roles (ADMIN/EDITOR/VIEWER). Required to avoid "No users assigned" errors. |
+| `argocd_vpce_ids` | No | VPC interface endpoint IDs for the Argo CD UI. Leave `[]` for public access. |
+
+> **KNOWN BUG — Argo CD UI public ↔ private switching:** Changing `argocd_vpce_ids` between empty and a VPCE ID does not apply in-place. Workaround: remove `argocd` from `capabilities`, apply (destroys the capability), then re-add with the correct `argocd_vpce_ids` and apply again. This affects the Argo CD UI endpoint only — not the Kubernetes API endpoint.
+
+### Argo CD CodeConnections (GitHub/GitLab/Bitbucket)
+
+Use the [modules/argocd-codeconnections](modules/argocd-codeconnections/) submodule to create CodeStar Connections and attach `codeconnections:UseConnection` + `codeconnections:GetConnection` to the Argo CD capability role:
+
+```hcl
+module "argocd_connections" {
+  source = "../../modules/argocd-codeconnections"
+  count  = var.argocd_idc_instance_arn != null ? 1 : 0
+
+  argocd_capability_role_name = module.eks.cluster_capability_role_names["argocd"]
+  connections = [{ name = "github-${var.cluster_name}", provider_type = "GitHub" }]
+  tags        = var.tags
+}
+```
+
+**Important:**
+
+- The IAM policy allows only the connections listed here. Argo CD Application `repoURL`s must use the UUID from `output.argocd_connection_ids["<name>"]`.
+- Using any other connection UUID will cause `AccessDeniedException` in Argo CD.
+- New connections are in `PENDING` state; complete the GitHub OAuth handshake in the AWS Console before Argo CD can sync.
+
+## API Endpoint Access
+
+The EKS API server endpoint access is controlled by three variables:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `endpoint_public_access` | `true` | Whether the API is reachable over the internet |
+| `public_access_cidrs` | `["0.0.0.0/0"]` | CIDRs allowed to reach the public endpoint |
+| `private_access_cidrs` | `[]` | CIDRs allowed to reach the private endpoint (within VPC) |
+
+**Configurations:**
+
+```hcl
+# Public only (default) — tighten public_access_cidrs in production
+endpoint_public_access = true
+public_access_cidrs    = ["1.2.3.4/32"]   # your egress IP
+
+# Private only — Terraform runner must be inside the VPC or connected via VPN
+endpoint_public_access = false
+private_access_cidrs   = ["10.0.0.0/8"]
+
+# Both (recommended for production)
+endpoint_public_access = true
+public_access_cidrs    = ["1.2.3.4/32"]
+private_access_cidrs   = ["10.0.0.0/8"]
+```
+
+> **Note:** `argocd_vpce_ids` controls the Argo CD UI endpoint only — it is separate from the Kubernetes API endpoint access above.
+
+<!-- markdownlint-disable MD060 -->
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
@@ -221,6 +327,7 @@ No modules.
 | [aws_eks_node_group.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_node_group) | resource |
 | [aws_eks_pod_identity_association.addon](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.aws_lb_controller](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
+| [aws_eks_pod_identity_association.cluster_autoscaler](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.dynamodb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.ebs_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.external_dns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
@@ -235,6 +342,7 @@ No modules.
 | [aws_iam_role.addon](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.aws_lb_controller](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.capability](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role.cluster_autoscaler](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.dynamodb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.ebs_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.eks_automode_nodes](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
@@ -247,6 +355,7 @@ No modules.
 | [aws_iam_role.sqs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role_policy.argocd_codeconnections](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
+| [aws_iam_role_policy.cluster_autoscaler](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.dynamodb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.external_dns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.kinesis](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
@@ -286,6 +395,9 @@ No modules.
 | [aws_iam_policy_document.aws_lb_controller_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.aws_lb_controller_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.capability_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.cluster_autoscaler](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.cluster_autoscaler_assume_role_irsa](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.cluster_autoscaler_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.dynamodb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.dynamodb_assume_role_irsa](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.dynamodb_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -335,6 +447,9 @@ No modules.
 | <a name="input_cloudwatch_log_group_retention_in_days"></a> [cloudwatch\_log\_group\_retention\_in\_days](#input\_cloudwatch\_log\_group\_retention\_in\_days) | Number of days to retain log events in the CloudWatch log group | `number` | `14` | no |
 | <a name="input_cloudwatch_log_group_tags"></a> [cloudwatch\_log\_group\_tags](#input\_cloudwatch\_log\_group\_tags) | Additional tags to apply to the CloudWatch log group | `map(string)` | `{}` | no |
 | <a name="input_cluster_authentication_mode"></a> [cluster\_authentication\_mode](#input\_cluster\_authentication\_mode) | Authentication mode for the EKS cluster. Valid values: CONFIG\_MAP, API, API\_AND\_CONFIG\_MAP. Defaults to API\_AND\_CONFIG\_MAP when capabilities are enabled, otherwise CONFIG\_MAP. | `string` | `"API_AND_CONFIG_MAP"` | no |
+| <a name="input_cluster_autoscaler_identity_type"></a> [cluster\_autoscaler\_identity\_type](#input\_cluster\_autoscaler\_identity\_type) | Identity type for Cluster Autoscaler. Use 'pod\_identity' to create Pod Identity association; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
+| <a name="input_cluster_autoscaler_namespace"></a> [cluster\_autoscaler\_namespace](#input\_cluster\_autoscaler\_namespace) | Kubernetes namespace for Cluster Autoscaler service account. Used for IRSA OIDC condition and when cluster\_autoscaler\_identity\_type = 'pod\_identity'. | `string` | `"kube-system"` | no |
+| <a name="input_cluster_autoscaler_service_account"></a> [cluster\_autoscaler\_service\_account](#input\_cluster\_autoscaler\_service\_account) | Kubernetes service account name for Cluster Autoscaler. Used for IRSA OIDC condition and when cluster\_autoscaler\_identity\_type = 'pod\_identity'. | `string` | `"cluster-autoscaler"` | no |
 | <a name="input_cluster_encryption_config_key_arn"></a> [cluster\_encryption\_config\_key\_arn](#input\_cluster\_encryption\_config\_key\_arn) | ARN of the KMS key to use for encrypting Kubernetes secrets | `string` | `null` | no |
 | <a name="input_cluster_encryption_config_resources"></a> [cluster\_encryption\_config\_resources](#input\_cluster\_encryption\_config\_resources) | List of strings with resources to be encrypted. Valid values: secrets | `list(string)` | <pre>[<br/>  "secrets"<br/>]</pre> | no |
 | <a name="input_cluster_ip_family"></a> [cluster\_ip\_family](#input\_cluster\_ip\_family) | IP family for the EKS cluster. Valid values: ipv4, ipv6 | `string` | `"ipv4"` | no |
@@ -350,6 +465,7 @@ No modules.
 | <a name="input_eks_managed_node_groups"></a> [eks\_managed\_node\_groups](#input\_eks\_managed\_node\_groups) | Map of EKS managed node group configurations | <pre>map(object({<br/>    name                       = optional(string)<br/>    ami_type                   = optional(string, "AL2023_x86_64_STANDARD")<br/>    instance_types             = optional(list(string), ["t3.medium"])<br/>    min_size                   = optional(number, 1)<br/>    max_size                   = optional(number, 3)<br/>    desired_size               = optional(number, 2)<br/>    disk_size                  = optional(number, 20)<br/>    subnet_ids                 = optional(list(string))<br/>    enable_bootstrap_user_data = optional(bool, true)<br/>    metadata_options = optional(object({<br/>      http_endpoint               = optional(string, "enabled")<br/>      http_tokens                 = optional(string, "required")<br/>      http_put_response_hop_limit = optional(number, 1)<br/>    }))<br/>    labels = optional(map(string), {})<br/>    tags   = optional(map(string), {})<br/>  }))</pre> | `{}` | no |
 | <a name="input_enable_automode"></a> [enable\_automode](#input\_enable\_automode) | Enable EKS Auto Mode. Mutually exclusive with eks\_managed\_node\_groups. | `bool` | `false` | no |
 | <a name="input_enable_aws_load_balancer_controller"></a> [enable\_aws\_load\_balancer\_controller](#input\_enable\_aws\_load\_balancer\_controller) | Whether to create IAM role for AWS Load Balancer Controller (IRSA) | `bool` | `false` | no |
+| <a name="input_enable_cluster_autoscaler_iam"></a> [enable\_cluster\_autoscaler\_iam](#input\_enable\_cluster\_autoscaler\_iam) | Whether to create IAM role for Cluster Autoscaler (IRSA or Pod Identity per cluster\_autoscaler\_identity\_type). For EC2 managed node groups only; not supported with enable\_automode. When true, adds k8s.io/cluster-autoscaler/* tags to managed node groups for ASG autodiscovery. | `bool` | `false` | no |
 | <a name="input_enable_cluster_creator_admin_permissions"></a> [enable\_cluster\_creator\_admin\_permissions](#input\_enable\_cluster\_creator\_admin\_permissions) | Indicates whether or not to add the cluster creator (the identity used by Terraform) as an administrator via access entry | `bool` | `false` | no |
 | <a name="input_enable_dynamodb_access"></a> [enable\_dynamodb\_access](#input\_enable\_dynamodb\_access) | Whether to create IAM roles for DynamoDB access (IRSA or Pod Identity per dynamodb\_identity\_type). One role per dynamodb\_access entry. | `bool` | `false` | no |
 | <a name="input_enable_ebs_csi_driver"></a> [enable\_ebs\_csi\_driver](#input\_enable\_ebs\_csi\_driver) | Whether to create IAM role for EBS CSI driver (IRSA or Pod Identity per ebs\_csi\_driver\_identity\_type) | `bool` | `false` | no |
@@ -401,9 +517,11 @@ No modules.
 | <a name="output_cluster_addons"></a> [cluster\_addons](#output\_cluster\_addons) | Map of attribute maps for all EKS cluster addons enabled |
 | <a name="output_cluster_arn"></a> [cluster\_arn](#output\_cluster\_arn) | The Amazon Resource Name (ARN) of the cluster |
 | <a name="output_cluster_auth_token"></a> [cluster\_auth\_token](#output\_cluster\_auth\_token) | Token to authenticate with the EKS cluster |
+| <a name="output_cluster_autoscaler_role_arn"></a> [cluster\_autoscaler\_role\_arn](#output\_cluster\_autoscaler\_role\_arn) | IAM role ARN for Cluster Autoscaler (when enable\_cluster\_autoscaler\_iam). For IRSA, annotate the cluster-autoscaler ServiceAccount with this ARN. |
 | <a name="output_cluster_ca_certificate"></a> [cluster\_ca\_certificate](#output\_cluster\_ca\_certificate) | Decoded certificate data required to communicate with the cluster |
 | <a name="output_cluster_capabilities"></a> [cluster\_capabilities](#output\_cluster\_capabilities) | Map of EKS capability resources (ACK, KRO, Argo CD) keyed by capability name |
 | <a name="output_cluster_capability_role_arns"></a> [cluster\_capability\_role\_arns](#output\_cluster\_capability\_role\_arns) | Map of IAM role ARNs for EKS capabilities created by the module (keyed by capability name). Use for ACK controller config or external reference. |
+| <a name="output_cluster_capability_role_names"></a> [cluster\_capability\_role\_names](#output\_cluster\_capability\_role\_names) | Map of IAM role names for EKS capabilities created by the module (same keys as cluster\_capability\_role\_arns). Use for aws\_iam\_role\_policy.role and similar APIs that expect a role name. |
 | <a name="output_cluster_certificate_authority_data"></a> [cluster\_certificate\_authority\_data](#output\_cluster\_certificate\_authority\_data) | Base64 encoded certificate data required to communicate with the cluster |
 | <a name="output_cluster_endpoint"></a> [cluster\_endpoint](#output\_cluster\_endpoint) | Endpoint for your Kubernetes API server |
 | <a name="output_cluster_iam_role_arn"></a> [cluster\_iam\_role\_arn](#output\_cluster\_iam\_role\_arn) | Cluster IAM role ARN |
@@ -412,7 +530,7 @@ No modules.
 | <a name="output_cluster_name"></a> [cluster\_name](#output\_cluster\_name) | The name of the EKS cluster |
 | <a name="output_cluster_oidc_issuer_url"></a> [cluster\_oidc\_issuer\_url](#output\_cluster\_oidc\_issuer\_url) | The URL on the EKS cluster for the OpenID Connect identity provider |
 | <a name="output_cluster_platform_version"></a> [cluster\_platform\_version](#output\_cluster\_platform\_version) | Platform version for the cluster |
-| <a name="output_cluster_pod_identity_associations"></a> [cluster\_pod\_identity\_associations](#output\_cluster\_pod\_identity\_associations) | Map of EKS Pod Identity associations (addon, ALB controller, External DNS, EBS CSI driver, Secrets Manager, S3) when using Pod Identity |
+| <a name="output_cluster_pod_identity_associations"></a> [cluster\_pod\_identity\_associations](#output\_cluster\_pod\_identity\_associations) | Map of EKS Pod Identity associations (addon, ALB controller, External DNS, EBS CSI driver, Cluster Autoscaler, Secrets Manager, S3) when using Pod Identity |
 | <a name="output_cluster_primary_security_group_id"></a> [cluster\_primary\_security\_group\_id](#output\_cluster\_primary\_security\_group\_id) | Cluster security group that was created by Amazon EKS for the cluster |
 | <a name="output_cluster_security_group_id"></a> [cluster\_security\_group\_id](#output\_cluster\_security\_group\_id) | ID of the cluster security group |
 | <a name="output_cluster_service_cidr"></a> [cluster\_service\_cidr](#output\_cluster\_service\_cidr) | The IPv4 CIDR block where Kubernetes pod and service IP addresses are assigned from |
@@ -438,6 +556,7 @@ No modules.
 | <a name="output_secrets_manager_role_arn"></a> [secrets\_manager\_role\_arn](#output\_secrets\_manager\_role\_arn) | IAM role ARN for Secrets Manager (when enabled) |
 | <a name="output_sqs_role_arns"></a> [sqs\_role\_arns](#output\_sqs\_role\_arns) | Map of IAM role ARNs for SQS access (when enable\_sqs\_access), keyed by namespace/service\_account |
 <!-- END_TF_DOCS -->
+<!-- markdownlint-enable MD060 -->
 
 ## Connecting to the Cluster
 
@@ -480,13 +599,18 @@ terraform-aws-eks-basic/
 ├── modules/
 │   └── argocd-codeconnections/  # Optional: CodeStar Connections + IAM for Argo CD repo access
 └── examples/
-    ├── basic/                    # Basic usage example
-    ├── eks-capabilities/         # Platform engineering with capabilities
-    ├── eks-capabilities-private/ # Private-only EKS and Argo CD
-    ├── eks-auto-mode/            # EKS Auto Mode (no managed node groups)
-    ├── eks-fargate/              # Fargate (kube-system + app) + small MNG for Pod Identity agent
+    ├── minimal/                  # Smallest possible usage (BYO VPC, Auto Mode)
+    ├── basic/                    # Classic EC2 node groups with full feature set
+    ├── auto-mode/                # EKS Auto Mode with full feature set
+    ├── auto-mode-private/        # Auto Mode, private API + private Argo CD UI (VPCE)
+    ├── auto-mode-keda-workload/  # Auto Mode + SQS IAM for KEDA workers
+    ├── fargate/                  # Fargate only (kube-system + app profiles)
+    ├── capabilities/             # Platform engineering with capabilities
+    ├── capabilities-private/     # Private-only EKS and Argo CD
     ├── pod-identity/             # Pod Identity for ALB, External DNS, EBS CSI, Secrets Manager
-    └── private-endpoint/         # EKS with private API endpoint
+    ├── private-endpoint/         # EKS with private API endpoint
+    ├── multi-cluster-shared-vpc/  # One VPC: classic EC2, Fargate, Auto Mode + optional Argo each
+    └── hub-spoke-argocd/          # Hub-and-spoke GitOps: Argo CD on hub, spoke clusters via access entries
 ```
 
 ## License

@@ -33,19 +33,24 @@ output "cluster_version" {
   value       = module.eks.cluster_version
 }
 
-output "karpenter_node_role_name" {
-  description = "IAM role name for Karpenter-provisioned nodes (must match EC2NodeClass spec.role in kube-infra)"
-  value       = module.eks.karpenter_node_role_name
-}
-
-output "karpenter_interruption_queue_name" {
-  description = "SQS queue name for Karpenter settings.interruptionQueue"
-  value       = module.eks.karpenter_interruption_queue_name
-}
-
 output "oidc_provider_arn" {
   description = "ARN of the EKS OIDC provider"
   value       = module.eks.oidc_provider_arn
+}
+
+output "fargate_role_arn" {
+  description = "ARN of the Fargate pod execution IAM role"
+  value       = module.eks.fargate_role_arn
+}
+
+output "fargate_profiles" {
+  description = "Map of EKS Fargate profiles created"
+  value       = module.eks.fargate_profiles
+}
+
+output "fargate_access_entry_arn" {
+  description = "ARN of the module-managed Fargate access entry (when created)"
+  value       = module.eks.fargate_access_entry_arn
 }
 
 output "argocd_connection_ids" {

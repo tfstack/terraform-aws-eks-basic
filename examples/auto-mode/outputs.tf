@@ -33,16 +33,6 @@ output "cluster_version" {
   value       = module.eks.cluster_version
 }
 
-output "karpenter_node_role_name" {
-  description = "IAM role name for Karpenter-provisioned nodes (must match EC2NodeClass spec.role in kube-infra)"
-  value       = module.eks.karpenter_node_role_name
-}
-
-output "karpenter_interruption_queue_name" {
-  description = "SQS queue name for Karpenter settings.interruptionQueue"
-  value       = module.eks.karpenter_interruption_queue_name
-}
-
 output "oidc_provider_arn" {
   description = "ARN of the EKS OIDC provider"
   value       = module.eks.oidc_provider_arn

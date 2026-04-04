@@ -35,18 +35,16 @@ module "vpc" {
   tags             = var.tags
 }
 
-# Classic EKS — EC2 managed node groups. Use when Auto Mode is not available
-# or when you need full control over node configuration (instance types, AMIs, etc.).
-#
-# Pod Identity is supported on EC2 nodes (Pod Identity agent addon required).
-# Mutually exclusive with enable_automode.
+# EKS Auto Mode — compute is auto-provisioned by AWS; no managed node groups.
+# Mutually exclusive with eks_managed_node_groups.
+# Built-in: CoreDNS, vpc-cni, kube-proxy, Pod Identity Agent, block storage, load balancing.
 module "eks" {
   source = "../../"
 
   name               = var.cluster_name
   kubernetes_version = var.cluster_version
   vpc_id             = module.vpc.vpc_id
-  subnet_ids         = concat(module.vpc.public_subnet_ids, module.vpc.private_subnet_ids)
+  subnet_ids         = module.vpc.private_subnet_ids
 
   # ── API Endpoint Access ──────────────────────────────────────────────────────
   # Public (default): API reachable over the internet.
@@ -69,50 +67,13 @@ module "eks" {
 
   access_entries = var.access_entries
 
-  enable_cluster_creator_admin_permissions = true
+  enable_automode     = true
+  automode_node_pools = ["system", "general-purpose"]
 
   cloudwatch_log_group_force_destroy = true
 
-  addons = {
-    coredns = {
-      addon_version = "v1.13.2-eksbuild.1"
-    }
-    eks-pod-identity-agent = {
-      before_compute = true
-      addon_version  = "v1.3.10-eksbuild.2"
-    }
-    kube-proxy = {
-      addon_version = "v1.35.0-eksbuild.2"
-    }
-    vpc-cni = {
-      before_compute = true
-      addon_version  = "v1.21.1-eksbuild.3"
-      configuration_values = jsonencode({
-        enableNetworkPolicy = "true"
-        nodeAgent = {
-          enablePolicyEventLogs = "true"
-        }
-      })
-    }
-  }
-
-  eks_managed_node_groups = {
-    one = {
-      name           = "node-group-1"
-      ami_type       = "AL2023_x86_64_STANDARD"
-      instance_types = ["t3a.large"]
-
-      min_size     = 2
-      max_size     = 4
-      desired_size = 2
-
-      metadata_options = {
-        http_endpoint               = "enabled"
-        http_tokens                 = "required"
-        http_put_response_hop_limit = 1
-      }
-    }
-  }
+  # Auto Mode has built-in addons; do not install CoreDNS, vpc-cni, kube-proxy, or Pod Identity Agent here.
+  addons = {}
 
   # ── EKS Capabilities (ACK, KRO, Argo CD) ────────────────────────────────────
   # ACK and KRO are always enabled.
@@ -164,36 +125,22 @@ module "eks" {
     } : {}
   )
 
-  # ── EBS CSI Driver (Pod Identity) ───────────────────────────────────────────
-  # Pod Identity is supported on EC2 nodes (eks-pod-identity-agent addon above is required).
+  # ── EBS CSI Driver ───────────────────────────────────────────────────────────
+  # Pod Identity is supported on Auto Mode (agent is built in).
   # ────────────────────────────────────────────────────────────────────────────
   ebs_csi_driver_identity_type = "pod_identity"
   enable_ebs_csi_driver        = true
 
-  # ── Karpenter (Pod Identity) ────────────────────────────────────────────────
-  # Node autoscaling via Karpenter; requires eks-pod-identity-agent addon above.
-  # Tags private subnets for karpenter.sh/discovery (see karpenter_discovery_subnet_ids).
-  # ────────────────────────────────────────────────────────────────────────────
-  enable_karpenter               = true
-  karpenter_identity_type        = "pod_identity"
-  karpenter_discovery_subnet_ids = module.vpc.private_subnet_ids
-
-  # ── Cluster Autoscaler (Pod Identity) ───────────────────────────────────────
-  # IAM for in-cluster Cluster Autoscaler (GitOps manifest). EC2 managed node
-  # groups only — not for Auto Mode or Fargate. Requires eks-pod-identity-agent.
-  # ────────────────────────────────────────────────────────────────────────────
-  # enable_cluster_autoscaler_iam    = true
-  # cluster_autoscaler_identity_type = "pod_identity"
-
   # ── Secrets Manager (Pod Identity) ──────────────────────────────────────────
   # Grants named service accounts access to Secrets Manager via Pod Identity.
-  # Pod Identity is supported on EC2 nodes; NOT supported on Fargate (use IRSA there).
+  # Supported on Auto Mode; NOT supported on Fargate (use IRSA there instead).
   # Remove this block if not using Secrets Store CSI Driver.
   # ────────────────────────────────────────────────────────────────────────────
   enable_secrets_manager        = true
   secrets_manager_identity_type = "pod_identity"
   secrets_manager_associations = [
     { namespace = "sm-operator-system", service_account = "awssm-sync" },
+    { namespace = "atlantis-1", service_account = "awssm-sync" }
   ]
   secrets_manager_secret_name_prefixes = ["bitwarden/sm-operator"]
 

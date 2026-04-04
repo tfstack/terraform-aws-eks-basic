@@ -1,0 +1,100 @@
+---
+description: Project-wide conventions for terraform-aws-eks-basic. Always apply when working in this repo.
+globs:
+alwaysApply: true
+---
+
+# Project Conventions
+
+## Repo overview
+
+This is a Terraform module (`terraform-aws-eks-basic`) for creating EKS clusters.
+
+- Root module: the reusable module itself (do not treat as an example)
+- `examples/`: standalone Terraform configurations that call the root module for testing/reference
+- `modules/argocd-codeconnections/`: optional submodule for GitHub CodeConnections + IAM
+- Related GitOps repo: `/home/johna/workspace/k8sforge/kube-infra` (Argo CD manifests)
+
+## Terraform workflow
+
+Always run Terraform commands from within the example directory, not the root:
+```bash
+cd examples/auto-mode
+terraform init
+terraform plan
+terraform apply
+```
+
+## Examples
+
+The three primary full-featured examples are:
+- `examples/auto-mode` — EKS Auto Mode (primary example; used for personal testing)
+- `examples/fargate` — Pure Fargate
+- `examples/basic` — Classic EC2 managed node groups
+
+These all share the same variable/output structure for consistency.
+
+Minimal example (`examples/minimal`) is BYO VPC, no capabilities, ~30 lines.
+
+### Example conventions
+- No `kubernetes` or `helm` provider blocks unless the example actually uses them
+- Variables always include `endpoint_public_access`, `public_access_cidrs`, `private_access_cidrs`, `argocd_idc_instance_arn`, `argocd_rbac_role_mappings`, `argocd_vpce_ids`, `access_entries`, `tags`
+- Outputs always include `aws_region`, `cluster_name`, `cluster_endpoint`, `oidc_provider_arn`, and any Argo CD CodeConnections outputs when applicable
+- Comments use `# ── Section Title ──────` header style with closing `# ──` line
+
+## Argo CD capability
+
+- Requires AWS IAM Identity Center (`argocd_idc_instance_arn`)
+- Use `merge({ack={}, kro={}}, var.argocd_idc_instance_arn != null ? { argocd = {...} } : {})` pattern
+- Always include `network_access = { vpce_ids = var.argocd_vpce_ids }` even when empty
+- Always include `rbac_role_mapping = var.argocd_rbac_role_mappings`
+
+### CodeConnections
+
+- Always use `modules/argocd-codeconnections` submodule — do not wire inline
+- `argocd_capability_role_name = module.eks.cluster_capability_role_names["argocd"]`
+- Connection `name` should follow pattern `"github-${var.cluster_name}"`
+- Always expose `argocd_connection_ids`, `argocd_codeconnections_iam_role_name`, `argocd_codeconnections_iam_policy_name` as outputs
+- After apply, go to AWS Console → CodeConnections to complete OAuth; connections start in PENDING state
+- Argo CD Application repoURLs must use the UUID from `connection_ids` output — other UUIDs cause AccessDeniedException
+
+## Known bugs
+
+### Argo CD UI public ↔ private switching
+
+**Symptom:** Changing `argocd_vpce_ids` between empty and a VPCE ID does not apply in-place.
+
+**Workaround:**
+1. Remove `argocd` from `capabilities` block
+2. Run `terraform apply` (destroys the Argo CD capability)
+3. Re-add `argocd` with the correct `argocd_vpce_ids`
+4. Run `terraform apply` again
+
+This applies only to the Argo CD UI endpoint — not the Kubernetes API endpoint access.
+
+## Pod Identity vs IRSA
+
+| Context | Use |
+| --- | --- |
+| Auto Mode | Pod Identity (`"pod_identity"`) — agent is built in |
+| EC2 nodes | Pod Identity (`"pod_identity"`) — requires `eks-pod-identity-agent` addon |
+| Fargate | IRSA (`"irsa"`) — Pod Identity agent cannot run on Fargate |
+
+## kube-infra repo
+
+GitOps manifests live at `/home/johna/workspace/k8sforge/kube-infra`.
+Argo CD Application `repoURL` must use the CodeConnections UUID from Terraform output `argocd_connection_ids`.
+Bootstrap secret commands are documented in `bootstrap/README.md` in that repo.
+
+Cursor rules for GitOps layout, hub-spoke ApplicationSets, spoke `argocd` namespace / RBAC reconcile, and EBS CSI vs Auto Mode are in **kube-infra** `.cursor/rules/infrastructure-conventions.mdc` — read that when editing `clusters/`, `bootstrap/`, or `infrastructure/aws-ebs-csi-driver/`.
+
+### Hub-spoke example (`examples/hub-spoke-argocd`)
+
+- Argo CD capability lives on the **hub** only; spokes get **`access_entries`** merging `argocd_hub` so the hub capability IAM role has cluster-admin (or scoped policy) on each spoke.
+- Cluster registration in kube-infra uses **EKS cluster ARN** as `server` in the cluster Secret when using managed Argo CD `awsAuthConfig` (not the public API URL).
+- Terraform does **not** create the empty `argocd` namespace on spokes; GitOps **`infrastructure/argocd-destination-namespace/`** in kube-infra does (see kube-infra rules). Do not spend cycles on “wrong EBS CSI” until spoke RBAC sync errors (`namespaces "argocd" not found`) are ruled out.
+
+## Markdown
+
+- **`README.md` terraform-docs block:** Do **not** edit anything between `<!-- BEGIN_TF_DOCS -->` and `<!-- END_TF_DOCS -->` — it is auto-generated. Regenerate with terraform-docs after changing root-module Terraform. Do **not** remove the `markdownlint-disable MD060` / `markdownlint-enable MD060` HTML comments that wrap that block (they live outside the markers).
+- **All other `*.md`:** Use **compact** tables for markdownlint **MD060** (`| --- | --- |` separators). **MD013** (line length) is off repo-wide. See `.markdownlint.yaml` and `.cursor/rules/markdown.mdc`.

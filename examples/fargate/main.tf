@@ -35,11 +35,21 @@ module "vpc" {
   tags             = var.tags
 }
 
-# Classic EKS — EC2 managed node groups. Use when Auto Mode is not available
-# or when you need full control over node configuration (instance types, AMIs, etc.).
+# Pure Fargate EKS cluster — no EC2 nodes. All pods run on AWS Fargate.
 #
-# Pod Identity is supported on EC2 nodes (Pod Identity agent addon required).
-# Mutually exclusive with enable_automode.
+# Credential delivery for Fargate pods:
+#   Use IRSA (IAM Roles for Service Accounts): annotate the service account with
+#   an IAM role ARN and the pod exchanges its OIDC token with STS directly.
+#
+#   EKS Pod Identity is NOT supported on Fargate. The Pod Identity agent is a
+#   hostNetwork DaemonSet that only runs on EC2 nodes.
+#   See: https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html
+#
+# EBS CSI Driver is NOT applicable on Fargate. Fargate pods cannot use EBS volumes
+# (EBS is EC2-specific). Use EFS or S3 for persistent storage on Fargate.
+#
+# CoreDNS: configured with computeType=fargate so EKS schedules it on Fargate.
+# The kube-system Fargate profile below is required for this.
 module "eks" {
   source = "../../"
 
@@ -57,11 +67,6 @@ module "eks" {
   #   endpoint_public_access = false
   #   private_access_cidrs   = ["10.0.0.0/8"]
   #   (Terraform runner must be inside the VPC or connected via VPN)
-  #
-  # Both (recommended for production):
-  #   endpoint_public_access = true
-  #   public_access_cidrs    = ["1.2.3.4/32"]  # your egress IP only
-  #   private_access_cidrs   = ["10.0.0.0/8"]
   # ────────────────────────────────────────────────────────────────────────────
   endpoint_public_access = var.endpoint_public_access
   public_access_cidrs    = var.public_access_cidrs
@@ -69,48 +74,36 @@ module "eks" {
 
   access_entries = var.access_entries
 
-  enable_cluster_creator_admin_permissions = true
-
   cloudwatch_log_group_force_destroy = true
 
   addons = {
     coredns = {
-      addon_version = "v1.13.2-eksbuild.1"
-    }
-    eks-pod-identity-agent = {
-      before_compute = true
-      addon_version  = "v1.3.10-eksbuild.2"
-    }
-    kube-proxy = {
-      addon_version = "v1.35.0-eksbuild.2"
+      addon_version = "v1.13.2-eksbuild.4"
+      configuration_values = jsonencode({
+        computeType = "fargate"
+      })
     }
     vpc-cni = {
       before_compute = true
-      addon_version  = "v1.21.1-eksbuild.3"
-      configuration_values = jsonencode({
-        enableNetworkPolicy = "true"
-        nodeAgent = {
-          enablePolicyEventLogs = "true"
-        }
-      })
+      addon_version  = "v1.21.1-eksbuild.7"
     }
   }
 
-  eks_managed_node_groups = {
-    one = {
-      name           = "node-group-1"
-      ami_type       = "AL2023_x86_64_STANDARD"
-      instance_types = ["t3a.large"]
-
-      min_size     = 2
-      max_size     = 4
-      desired_size = 2
-
-      metadata_options = {
-        http_endpoint               = "enabled"
-        http_tokens                 = "required"
-        http_put_response_hop_limit = 1
-      }
+  fargate_profiles = {
+    # Required so CoreDNS (and other kube-system pods) can schedule on Fargate.
+    kube-system = {
+      selectors  = [{ namespace = "kube-system" }]
+      subnet_ids = module.vpc.private_subnet_ids
+    }
+    # Gatekeeper (Argo / Helm) installs into gatekeeper-system — needs its own profile on Fargate-only clusters.
+    gatekeeper-system = {
+      selectors  = [{ namespace = "gatekeeper-system" }]
+      subnet_ids = module.vpc.private_subnet_ids
+    }
+    # Application namespace — add more selectors or profiles as needed.
+    default = {
+      selectors  = [{ namespace = var.fargate_namespace }]
+      subnet_ids = module.vpc.private_subnet_ids
     }
   }
 
@@ -164,38 +157,17 @@ module "eks" {
     } : {}
   )
 
-  # ── EBS CSI Driver (Pod Identity) ───────────────────────────────────────────
-  # Pod Identity is supported on EC2 nodes (eks-pod-identity-agent addon above is required).
+  # ── Secrets Manager (IRSA) ───────────────────────────────────────────────────
+  # On Fargate, use IRSA — Pod Identity is NOT supported.
+  # Uncomment and configure to grant service accounts Secrets Manager access.
+  #
+  # enable_secrets_manager        = true
+  # secrets_manager_identity_type = "irsa"
+  # secrets_manager_associations = [
+  #   { namespace = "sm-operator-system", service_account = "awssm-sync" },
+  # ]
+  # secrets_manager_secret_name_prefixes = ["bitwarden/sm-operator"]
   # ────────────────────────────────────────────────────────────────────────────
-  ebs_csi_driver_identity_type = "pod_identity"
-  enable_ebs_csi_driver        = true
-
-  # ── Karpenter (Pod Identity) ────────────────────────────────────────────────
-  # Node autoscaling via Karpenter; requires eks-pod-identity-agent addon above.
-  # Tags private subnets for karpenter.sh/discovery (see karpenter_discovery_subnet_ids).
-  # ────────────────────────────────────────────────────────────────────────────
-  enable_karpenter               = true
-  karpenter_identity_type        = "pod_identity"
-  karpenter_discovery_subnet_ids = module.vpc.private_subnet_ids
-
-  # ── Cluster Autoscaler (Pod Identity) ───────────────────────────────────────
-  # IAM for in-cluster Cluster Autoscaler (GitOps manifest). EC2 managed node
-  # groups only — not for Auto Mode or Fargate. Requires eks-pod-identity-agent.
-  # ────────────────────────────────────────────────────────────────────────────
-  # enable_cluster_autoscaler_iam    = true
-  # cluster_autoscaler_identity_type = "pod_identity"
-
-  # ── Secrets Manager (Pod Identity) ──────────────────────────────────────────
-  # Grants named service accounts access to Secrets Manager via Pod Identity.
-  # Pod Identity is supported on EC2 nodes; NOT supported on Fargate (use IRSA there).
-  # Remove this block if not using Secrets Store CSI Driver.
-  # ────────────────────────────────────────────────────────────────────────────
-  enable_secrets_manager        = true
-  secrets_manager_identity_type = "pod_identity"
-  secrets_manager_associations = [
-    { namespace = "sm-operator-system", service_account = "awssm-sync" },
-  ]
-  secrets_manager_secret_name_prefixes = ["bitwarden/sm-operator"]
 
   tags = var.tags
 }
