@@ -6,12 +6,7 @@ This example demonstrates how to create a basic EKS cluster with EC2 managed nod
 
 1. **Configure variables:**
 
-   Edit `terraform.tfvars` to set your cluster name and access entries:
-
-   ```hcl
-   cluster_name = "my-eks-cluster"
-   aws_region   = "ap-southeast-2"
-   ```
+   Edit `terraform.tfvars` (gitignored) or copy from `terraform.tfvars.example`. Cluster creator admin is enabled for the IAM identity that runs Terraform, so `access_entries` can stay `{}` at first. For additional principals, use real IAM ARNs in `access_entries` (12-digit account ID in the ARN; placeholder text like `ACCOUNT_ID` is rejected by AWS).
 
 2. **Initialize and apply:**
 
@@ -25,7 +20,7 @@ This example demonstrates how to create a basic EKS cluster with EC2 managed nod
 
 ### Variables
 
-- `cluster_name`: Name of the EKS cluster (default: `cltest`)
+- `cluster_name`: Name of the EKS cluster (default: `eks-basic`)
 - `aws_region`: AWS region for resources (default: `ap-southeast-2`)
 - `cluster_version`: Kubernetes version (default: `1.35`)
 - `access_entries`: Map of IAM users/roles with cluster access (default: `{}`)

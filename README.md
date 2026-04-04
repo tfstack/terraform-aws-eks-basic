@@ -6,7 +6,7 @@ A Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Serv
 
 - **EC2 Managed Node Groups**: Full support with customizable launch templates and auto-scaling
 - **EKS Auto Mode**: Optional; compute is auto-provisioned by AWS (no managed node groups; built-in node pools). Mutually exclusive with `eks_managed_node_groups`.
-- **Fargate profiles**: Optional via `fargate_profiles`; shared pod execution role (create or bring-your-own ARN), profiles, and optional API access entry (`create_fargate_access_entry`, `fargate_access_entry_type`). IAM options: `fargate_pod_execution_role_name`, `path`, `permissions_boundary`. See `examples/eks-fargate`.
+- **Fargate profiles**: Optional via `fargate_profiles`; shared pod execution role (create or bring-your-own ARN), profiles, and optional API access entry (`create_fargate_access_entry`, `fargate_access_entry_type`). IAM options: `fargate_pod_execution_role_name`, `path`, `permissions_boundary`. See `examples/fargate`.
 - **Dual-Stack Support**: IPv4 and IPv6 cluster support (IPv6 service CIDR auto-assigned by AWS)
 - **Modern EKS Access Entries**: Native EKS authentication via access entries (no aws-auth ConfigMap)
 - **IRSA and Pod Identity**: OIDC provider for IAM Roles for Service Accounts (IRSA); optional EKS Pod Identity per component (ALB controller, External DNS, addons, Secrets Manager). Choose per component via `*_identity_type` variables (`"irsa"` or `"pod_identity"`). When using Pod Identity, enable the **eks-pod-identity-agent** addon.
@@ -19,7 +19,7 @@ A Terraform module for creating and managing Amazon EKS (Elastic Kubernetes Serv
 ## Prerequisites
 
 | Name | Version |
-| ---- | ------- |
+| --- | --- |
 | terraform | >= 1.6.0 |
 | aws | >= 6.0 |
 | kubernetes | ~> 2.30 |
@@ -171,15 +171,120 @@ EKS automatically creates an access entry for each capability role with default 
 
 ## Examples
 
-- **[examples/basic](examples/basic/)** - Basic EKS cluster with EC2 node groups
-- **[examples/pod-identity](examples/pod-identity/)** - EKS cluster using Pod Identity for ALB controller, External DNS, EBS CSI addon, and Secrets Manager
-- **[examples/eks-capabilities](examples/eks-capabilities/)** - Platform engineering example with EKS capabilities (ACK, KRO, Argo CD)
-- **[examples/eks-capabilities-private](examples/eks-capabilities-private/)** - Private-only EKS and Argo CD (VPC endpoints; access from within VPC)
-- **[examples/eks-auto-mode](examples/eks-auto-mode/)** - EKS cluster with Auto Mode (compute auto-provisioned; no managed node groups)
-- **[examples/eks-fargate](examples/eks-fargate/)** - EKS with Fargate only (no EC2 nodes); CoreDNS on Fargate; IRSA for workload AWS credentials
-- **[examples/eks-auto-mode-keda-workload](examples/eks-auto-mode-keda-workload/)** - Auto Mode + workload IAM wiring example (SQS; suitable for KEDA-managed workers)
-- **[examples/private-endpoint](examples/private-endpoint/)** - EKS with private API endpoint
+| Example | Compute mode | Capabilities | Argo CD | Notes |
+| --- | --- | --- | --- | --- |
+| [minimal](examples/minimal/) | Auto Mode | None | No | BYO VPC/subnets; smallest possible usage |
+| [basic](examples/basic/) | EC2 (managed node groups) | ACK, KRO, optional Argo CD | Optional | Full feature set for classic EC2 |
+| [auto-mode](examples/auto-mode/) | Auto Mode | ACK, KRO, optional Argo CD | Optional | Full feature set for Auto Mode |
+| [fargate](examples/fargate/) | Fargate only | ACK, KRO, optional Argo CD | Optional | No EC2 nodes; IRSA for workload IAM |
+| [auto-mode-private](examples/auto-mode-private/) | Auto Mode | ACK, KRO, Argo CD | Private (VPCE) | BYO VPC; private API + private Argo CD UI |
+| [capabilities](examples/capabilities/) | Auto Mode | ACK, KRO, Argo CD | Public | Platform engineering reference |
+| [capabilities-private](examples/capabilities-private/) | Auto Mode | ACK, KRO, Argo CD | Private (VPCE) | Private API + private Argo CD UI |
+| [pod-identity](examples/pod-identity/) | EC2 | None | No | Pod Identity for ALB, External DNS, EBS CSI, Secrets Manager |
+| [auto-mode-keda-workload](examples/auto-mode-keda-workload/) | Auto Mode | None | No | SQS IAM for KEDA-managed workers |
+| [private-endpoint](examples/private-endpoint/) | EC2 | None | No | Private API endpoint only |
+| [multi-cluster-shared-vpc](examples/multi-cluster-shared-vpc/) | EC2 + Fargate + Auto Mode | ACK, KRO, optional Argo CD (per cluster) | Optional | One VPC; three clusters; separate Argo CD and CodeConnections each |
 
+## Feature Reference
+
+### Compute mode
+
+| Feature | Auto Mode | Fargate | EC2 (managed node groups) |
+| --- | --- | --- | --- |
+| `enable_automode` | `true` | — | — |
+| `eks_managed_node_groups` | Not set (mutually exclusive) | — | Set map of node groups |
+| `fargate_profiles` | — | Required | — |
+| Pod Identity Agent | Built-in (no addon needed) | Not supported | Install `eks-pod-identity-agent` addon |
+| EBS CSI Driver | Pod Identity supported | Not applicable (no EBS on Fargate) | Pod Identity or IRSA |
+| Secrets Manager IAM | Pod Identity (`"pod_identity"`) | IRSA only (`"irsa"`) | Pod Identity or IRSA |
+| CoreDNS | Built-in | Set `computeType = "fargate"` in addon | Standard addon |
+| kube-proxy / vpc-cni | Built-in | Only vpc-cni addon needed | Standard addons |
+
+### Argo CD capability
+
+To enable Argo CD, set `argocd_idc_instance_arn` (AWS IAM Identity Center required):
+
+```hcl
+capabilities = merge(
+  { ack = {}, kro = {} },
+  var.argocd_idc_instance_arn != null ? {
+    argocd = {
+      access_entry_policy_associations = [{
+        policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+        access_scope = { type = "cluster" }
+      }]
+      configuration = {
+        argo_cd = {
+          namespace        = "argocd"
+          aws_idc          = { idc_instance_arn = var.argocd_idc_instance_arn, idc_region = var.aws_region }
+          rbac_role_mapping = var.argocd_rbac_role_mappings
+          network_access   = { vpce_ids = var.argocd_vpce_ids }
+        }
+      }
+    }
+  } : {}
+)
+```
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `argocd_idc_instance_arn` | Yes | IAM Identity Center instance ARN. When `null`, Argo CD is not created. |
+| `argocd_rbac_role_mappings` | No | IdC users/groups → Argo CD roles (ADMIN/EDITOR/VIEWER). Required to avoid "No users assigned" errors. |
+| `argocd_vpce_ids` | No | VPC interface endpoint IDs for the Argo CD UI. Leave `[]` for public access. |
+
+> **KNOWN BUG — Argo CD UI public ↔ private switching:** Changing `argocd_vpce_ids` between empty and a VPCE ID does not apply in-place. Workaround: remove `argocd` from `capabilities`, apply (destroys the capability), then re-add with the correct `argocd_vpce_ids` and apply again. This affects the Argo CD UI endpoint only — not the Kubernetes API endpoint.
+
+### Argo CD CodeConnections (GitHub/GitLab/Bitbucket)
+
+Use the [modules/argocd-codeconnections](modules/argocd-codeconnections/) submodule to create CodeStar Connections and attach `codeconnections:UseConnection` + `codeconnections:GetConnection` to the Argo CD capability role:
+
+```hcl
+module "argocd_connections" {
+  source = "../../modules/argocd-codeconnections"
+  count  = var.argocd_idc_instance_arn != null ? 1 : 0
+
+  argocd_capability_role_name = module.eks.cluster_capability_role_names["argocd"]
+  connections = [{ name = "github-${var.cluster_name}", provider_type = "GitHub" }]
+  tags        = var.tags
+}
+```
+
+**Important:**
+
+- The IAM policy allows only the connections listed here. Argo CD Application `repoURL`s must use the UUID from `output.argocd_connection_ids["<name>"]`.
+- Using any other connection UUID will cause `AccessDeniedException` in Argo CD.
+- New connections are in `PENDING` state; complete the GitHub OAuth handshake in the AWS Console before Argo CD can sync.
+
+## API Endpoint Access
+
+The EKS API server endpoint access is controlled by three variables:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `endpoint_public_access` | `true` | Whether the API is reachable over the internet |
+| `public_access_cidrs` | `["0.0.0.0/0"]` | CIDRs allowed to reach the public endpoint |
+| `private_access_cidrs` | `[]` | CIDRs allowed to reach the private endpoint (within VPC) |
+
+**Configurations:**
+
+```hcl
+# Public only (default) — tighten public_access_cidrs in production
+endpoint_public_access = true
+public_access_cidrs    = ["1.2.3.4/32"]   # your egress IP
+
+# Private only — Terraform runner must be inside the VPC or connected via VPN
+endpoint_public_access = false
+private_access_cidrs   = ["10.0.0.0/8"]
+
+# Both (recommended for production)
+endpoint_public_access = true
+public_access_cidrs    = ["1.2.3.4/32"]
+private_access_cidrs   = ["10.0.0.0/8"]
+```
+
+> **Note:** `argocd_vpce_ids` controls the Argo CD UI endpoint only — it is separate from the Kubernetes API endpoint access above.
+
+<!-- markdownlint-disable MD060 -->
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
@@ -328,7 +433,7 @@ No modules.
 | <a name="input_aws_lb_controller_namespace"></a> [aws\_lb\_controller\_namespace](#input\_aws\_lb\_controller\_namespace) | Kubernetes namespace for AWS Load Balancer Controller service account (Pod Identity). Used when aws\_load\_balancer\_controller\_identity\_type = 'pod\_identity'. | `string` | `"aws-load-balancer-controller"` | no |
 | <a name="input_aws_lb_controller_service_account"></a> [aws\_lb\_controller\_service\_account](#input\_aws\_lb\_controller\_service\_account) | Kubernetes service account name for AWS Load Balancer Controller (Pod Identity). | `string` | `"aws-load-balancer-controller"` | no |
 | <a name="input_aws_load_balancer_controller_identity_type"></a> [aws\_load\_balancer\_controller\_identity\_type](#input\_aws\_load\_balancer\_controller\_identity\_type) | Identity type for AWS Load Balancer Controller. Use 'pod\_identity' to create Pod Identity association; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
-| <a name="input_capabilities"></a> [capabilities](#input\_capabilities) | Map of EKS capabilities to enable. Valid keys: ack, kro, argocd. Argo CD requires configuration.argo\_cd.aws\_idc (Identity Center). delete\_propagation\_policy currently only supports RETAIN.<br/><br/>Security (see https://docs.aws.amazon.com/eks/latest/userguide/capabilities-security.html): Capability role must be in the same account as the cluster; when the module creates the role, the trust policy allows capabilities.eks.amazonaws.com. Least privilege: prefer scoping IAM to specific services, actions, and resources; avoid broad wildcards when possible (Configure ACK permissions, Security considerations for EKS Capabilities). kro: no IAM permissions required; use empty iam\_policy\_arns or omit. Argo CD: no IAM required by default; optional permissions only for Secrets Manager, CodeConnections, or ECR if used. Argo CD namespace: keep only Argo CD-relevant secrets in the configured namespace (default argocd) for namespace isolation. | <pre>map(object({<br/>    role_arn        = optional(string)<br/>    iam_policy_arns = optional(map(string), {})<br/>    # Argo CD: list of CodeConnections connection ARNs for repo access (codeconnections:UseConnection, GetConnection). Use submodule modules/argocd-codeconnections to create connections and attach policy, or pass ARNs here for root module to attach.<br/>    code_connection_arns = optional(list(string), [])<br/>    # Optional: associate additional EKS access entry policies (e.g. AmazonEKSSecretReaderPolicy for ACK controllers that read secrets).<br/>    access_entry_policy_associations = optional(list(object({<br/>      policy_arn = string<br/>      access_scope = optional(object({<br/>        type       = string # "cluster" or "namespace"<br/>        namespaces = optional(list(string), [])<br/>      }), { type = "cluster", namespaces = [] })<br/>    })), [])<br/>    # Argo CD only. Optional for ACK/KRO. For Argo CD, aws_idc is required for authentication.<br/>    configuration = optional(object({<br/>      argo_cd = optional(object({<br/>        namespace = optional(string)<br/>        aws_idc = optional(object({<br/>          idc_instance_arn = string<br/>          idc_region       = optional(string)<br/>        }))<br/>        rbac_role_mapping = optional(list(object({<br/>          role = string # ADMIN, EDITOR, VIEWER<br/>          identity = list(object({<br/>            type = string # SSO_USER, SSO_GROUP<br/>            id   = string<br/>          }))<br/>        })))<br/>        network_access = optional(object({<br/>          vpce_ids = optional(list(string))<br/>        }))<br/>      }))<br/>    }))<br/>    delete_propagation_policy = optional(string, "RETAIN")<br/>  }))</pre> | `{}` | no |
+| <a name="input_capabilities"></a> [capabilities](#input\_capabilities) | Map of EKS capabilities to enable. Valid keys: ack, kro, argocd. Argo CD requires configuration.argo\_cd.aws\_idc (Identity Center). delete\_propagation\_policy currently only supports RETAIN.<br/><br/>Security (see <https://docs.aws.amazon.com/eks/latest/userguide/capabilities-security.html>): Capability role must be in the same account as the cluster; when the module creates the role, the trust policy allows capabilities.eks.amazonaws.com. Least privilege: prefer scoping IAM to specific services, actions, and resources; avoid broad wildcards when possible (Configure ACK permissions, Security considerations for EKS Capabilities). kro: no IAM permissions required; use empty iam\_policy\_arns or omit. Argo CD: no IAM required by default; optional permissions only for Secrets Manager, CodeConnections, or ECR if used. Argo CD namespace: keep only Argo CD-relevant secrets in the configured namespace (default argocd) for namespace isolation. | <pre>map(object({<br/>    role_arn        = optional(string)<br/>    iam_policy_arns = optional(map(string), {})<br/>    # Argo CD: list of CodeConnections connection ARNs for repo access (codeconnections:UseConnection, GetConnection). Use submodule modules/argocd-codeconnections to create connections and attach policy, or pass ARNs here for root module to attach.<br/>    code_connection_arns = optional(list(string), [])<br/>    # Optional: associate additional EKS access entry policies (e.g. AmazonEKSSecretReaderPolicy for ACK controllers that read secrets).<br/>    access_entry_policy_associations = optional(list(object({<br/>      policy_arn = string<br/>      access_scope = optional(object({<br/>        type       = string # "cluster" or "namespace"<br/>        namespaces = optional(list(string), [])<br/>      }), { type = "cluster", namespaces = [] })<br/>    })), [])<br/>    # Argo CD only. Optional for ACK/KRO. For Argo CD, aws_idc is required for authentication.<br/>    configuration = optional(object({<br/>      argo_cd = optional(object({<br/>        namespace = optional(string)<br/>        aws_idc = optional(object({<br/>          idc_instance_arn = string<br/>          idc_region       = optional(string)<br/>        }))<br/>        rbac_role_mapping = optional(list(object({<br/>          role = string # ADMIN, EDITOR, VIEWER<br/>          identity = list(object({<br/>            type = string # SSO_USER, SSO_GROUP<br/>            id   = string<br/>          }))<br/>        })))<br/>        network_access = optional(object({<br/>          vpce_ids = optional(list(string))<br/>        }))<br/>      }))<br/>    }))<br/>    delete_propagation_policy = optional(string, "RETAIN")<br/>  }))</pre> | `{}` | no |
 | <a name="input_cloudwatch_log_group_class"></a> [cloudwatch\_log\_group\_class](#input\_cloudwatch\_log\_group\_class) | Specifies the log class of the log group. Valid values are: STANDARD or INFREQUENT\_ACCESS | `string` | `null` | no |
 | <a name="input_cloudwatch_log_group_force_destroy"></a> [cloudwatch\_log\_group\_force\_destroy](#input\_cloudwatch\_log\_group\_force\_destroy) | When true (default), the CloudWatch log group can be deleted on terraform destroy. Set to false to protect it with lifecycle { prevent\_destroy = true } (e.g. production). | `bool` | `true` | no |
 | <a name="input_cloudwatch_log_group_kms_key_id"></a> [cloudwatch\_log\_group\_kms\_key\_id](#input\_cloudwatch\_log\_group\_kms\_key\_id) | The ARN of the KMS Key to use when encrypting log data | `string` | `null` | no |
@@ -438,6 +543,7 @@ No modules.
 | <a name="output_secrets_manager_role_arn"></a> [secrets\_manager\_role\_arn](#output\_secrets\_manager\_role\_arn) | IAM role ARN for Secrets Manager (when enabled) |
 | <a name="output_sqs_role_arns"></a> [sqs\_role\_arns](#output\_sqs\_role\_arns) | Map of IAM role ARNs for SQS access (when enable\_sqs\_access), keyed by namespace/service\_account |
 <!-- END_TF_DOCS -->
+<!-- markdownlint-enable MD060 -->
 
 ## Connecting to the Cluster
 
@@ -480,13 +586,17 @@ terraform-aws-eks-basic/
 ├── modules/
 │   └── argocd-codeconnections/  # Optional: CodeStar Connections + IAM for Argo CD repo access
 └── examples/
-    ├── basic/                    # Basic usage example
-    ├── eks-capabilities/         # Platform engineering with capabilities
-    ├── eks-capabilities-private/ # Private-only EKS and Argo CD
-    ├── eks-auto-mode/            # EKS Auto Mode (no managed node groups)
-    ├── eks-fargate/              # Fargate (kube-system + app) + small MNG for Pod Identity agent
+    ├── minimal/                  # Smallest possible usage (BYO VPC, Auto Mode)
+    ├── basic/                    # Classic EC2 node groups with full feature set
+    ├── auto-mode/                # EKS Auto Mode with full feature set
+    ├── auto-mode-private/        # Auto Mode, private API + private Argo CD UI (VPCE)
+    ├── auto-mode-keda-workload/  # Auto Mode + SQS IAM for KEDA workers
+    ├── fargate/                  # Fargate only (kube-system + app profiles)
+    ├── capabilities/             # Platform engineering with capabilities
+    ├── capabilities-private/     # Private-only EKS and Argo CD
     ├── pod-identity/             # Pod Identity for ALB, External DNS, EBS CSI, Secrets Manager
-    └── private-endpoint/         # EKS with private API endpoint
+    ├── private-endpoint/         # EKS with private API endpoint
+    └── multi-cluster-shared-vpc/  # One VPC: classic EC2, Fargate, Auto Mode + optional Argo each
 ```
 
 ## License

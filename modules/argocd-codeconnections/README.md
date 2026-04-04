@@ -10,7 +10,7 @@ Call this submodule after creating the EKS cluster with the Argo CD capability. 
 module "argocd_connections" {
   source = "../../modules/argocd-codeconnections"
 
-  argocd_capability_role_arn = module.eks.cluster_capability_role_arns["argocd"]
+  argocd_capability_role_name = module.eks.cluster_capability_role_names["argocd"]
 
   connections = [
     { name = "github", provider_type = "GitHub" }
@@ -35,11 +35,13 @@ spec:
 
 Replace `CONNECTION_ID` with `module.argocd_connections.connection_ids["github"]`, and `owner`/`repo` with your Git org and repository name.
 
+This module only grants `UseConnection`/`GetConnection` on connections it creates. Point Argo CD Applications at those connection IDs; if you need another connection, attach IAM elsewhere (e.g. root module `capabilities.argocd.code_connection_arns`) or add a second entry under `connections` here.
+
 ## Inputs
 
 | Name | Description |
 | --- | --- |
-| argocd_capability_role_arn | IAM role ARN of the Argo CD capability (e.g. from `cluster_capability_role_arns["argocd"]`). |
+| argocd_capability_role_name | IAM role name of the Argo CD capability (e.g. `cluster_capability_role_names["argocd"]`). |
 | connections | List of `{ name, provider_type }`. `provider_type`: `GitHub`, `Bitbucket`, or `GitHubEnterpriseServer`. Optional `host_arn` for GitHub Enterprise / GitLab. |
 | tags | Tags for created resources. |
 

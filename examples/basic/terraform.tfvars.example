@@ -1,0 +1,55 @@
+# Copy to terraform.tfvars and set your values.
+# Repo .gitignore ignores *.tfvars.
+#
+# Do not use literal ACCOUNT_ID in principal_arn — AWS requires a 12-digit account ID in the ARN.
+# This example sets enable_cluster_creator_admin_permissions = true in main.tf so the Terraform
+# caller has admin until you add access_entries for other IAM principals.
+
+aws_region      = "ap-southeast-2"
+cluster_name    = "eks-basic"
+cluster_version = "1.35"
+
+tags = {
+  Environment = "dev"
+  ManagedBy   = "terraform"
+}
+
+access_entries = {}
+
+# Uncomment and replace 123456789012 / role name with your account and IAM role:
+# access_entries = {
+#   admin = {
+#     principal_arn = "arn:aws:iam::123456789012:role/MyAdminRole"
+#     type          = "STANDARD"
+#     policy_associations = {
+#       admin = {
+#         policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+#         access_scope = { type = "cluster" }
+#       }
+#     }
+#   }
+#
+#   # Optional: read-only
+#   # viewer = {
+#   #   principal_arn = "arn:aws:iam::123456789012:role/ViewerRole"
+#   #   type          = "STANDARD"
+#   #   policy_associations = {
+#   #     view = {
+#   #       policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"
+#   #       access_scope = { type = "cluster" }
+#   #     }
+#   #   }
+#   # }
+# }
+
+# Optional: API endpoint (defaults: public, 0.0.0.0/0)
+# endpoint_public_access = false
+# private_access_cidrs   = ["10.0.0.0/8"]
+# public_access_cidrs    = ["203.0.113.10/32"]
+
+# Optional: Argo CD capability (requires IAM Identity Center)
+# argocd_idc_instance_arn = "arn:aws:sso:::instance/ssoins-xxxxxxxxxxxxx"
+# argocd_rbac_role_mappings = [
+#   { role = "ADMIN", identity = [{ type = "SSO_USER", id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }] }
+# ]
+# argocd_vpce_ids = []
