@@ -1,0 +1,15 @@
+# Copy to terraform.tfvars and set your values.
+# Add terraform.tfvars to .gitignore if it contains account-specific data.
+
+# Required: existing VPC and subnets (private subnets recommended for Auto Mode nodes).
+vpc_id     = "vpc-xxxxxxxx"
+subnet_ids = ["subnet-aaaaaaaa", "subnet-bbbbbbbb"]
+
+# Optional overrides (defaults exist in variables.tf):
+# aws_region       = "ap-southeast-2"
+# cluster_name     = "eks-minimal"
+# cluster_version  = "1.35"
+
+# Note: this example does not pass access_entries to the module. For kubectl access,
+# either extend main.tf with access_entries or use an IAM identity that EKS grants
+# via another path (e.g. cluster creator policies in your org).

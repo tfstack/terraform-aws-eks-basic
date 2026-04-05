@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "cluster_name" {
   description = "Name of the EKS cluster"
   type        = string
-  default     = "eks-basic"
+  default     = "eks-fargate"
 }
 
 variable "cluster_version" {
@@ -60,6 +60,14 @@ variable "argocd_vpce_ids" {
   description = "VPC interface endpoint ID(s) for the Argo CD UI (com.amazonaws.<region>.eks-capabilities). Leave empty for a public UI. See KNOWN BUG in main.tf regarding in-place switching."
   type        = list(string)
   default     = []
+}
+
+# ── Fargate ──────────────────────────────────────────────────────────────────
+
+variable "fargate_namespace" {
+  description = "Kubernetes namespace selector for the default Fargate profile — pods in this namespace are scheduled on Fargate"
+  type        = string
+  default     = "app"
 }
 
 # ── Access ───────────────────────────────────────────────────────────────────

@@ -1,0 +1,82 @@
+---
+description: Terraform coding conventions for terraform-aws-eks-basic. Apply to all .tf files.
+globs:
+  - "**/*.tf"
+alwaysApply: false
+---
+
+# Terraform EKS Module Conventions
+
+## Variable standards
+
+- Use `default = null` for optional string variables that gate a feature (e.g. `argocd_idc_instance_arn`)
+- Use `default = []` for optional list variables (e.g. `argocd_vpce_ids`)
+- Required variables have no `default`
+- Boolean feature flags default to `false` (e.g. `enable_ebs_csi_driver = false`)
+- Identity type variables always default to `"irsa"` (e.g. `ebs_csi_driver_identity_type`)
+- Always group related variables with a `# ── Section Title ──` comment
+
+## IAM role references
+
+- Always use role **names** (not ARNs) when referencing capability roles for inline policies
+- Use `module.eks.cluster_capability_role_names["argocd"]` not `cluster_capability_role_arns`
+- The `argocd-codeconnections` submodule expects `argocd_capability_role_name` (string), not ARN
+
+## Comment style for optional feature blocks
+
+Use this style for all optional blocks in examples — makes it easy to scan what to enable:
+
+```hcl
+# ── Feature Name ────────────────────────────────────────────────────────────
+# Short explanation of when/why to enable this.
+# Mutually exclusive with: X
+# NOT applicable on: Y
+# ────────────────────────────────────────────────────────────────────────────
+enable_feature = true
+```
+
+Do not add comments that just repeat what the code does — only explain non-obvious intent, trade-offs, or constraints.
+
+## Auto Mode specifics
+
+- Set `addons = {}` — built-ins cover CoreDNS, vpc-cni, kube-proxy, Pod Identity Agent
+- Set `enable_automode = true` and `automode_node_pools = ["system", "general-purpose"]`
+- Do NOT set `eks_managed_node_groups` (mutually exclusive)
+- Use private subnets only for `subnet_ids` on Auto Mode
+
+## Fargate specifics
+
+- Pass `concat(module.vpc.public_subnet_ids, module.vpc.private_subnet_ids)` to `subnet_ids`
+- Always include a `kube-system` Fargate profile so CoreDNS can schedule
+- Set `computeType = "fargate"` in the CoreDNS addon `configuration_values`
+- Only vpc-cni and coredns addons needed (no kube-proxy, no Pod Identity Agent)
+- Secrets Manager and EBS CSI must use `"irsa"` identity type — Pod Identity not supported on Fargate
+- EBS CSI is not applicable on Fargate — remove it entirely
+
+## Capabilities block pattern
+
+Always use `merge()` with a conditional for Argo CD:
+
+```hcl
+capabilities = merge(
+  { ack = {}, kro = {} },
+  var.argocd_idc_instance_arn != null ? { argocd = { ... } } : {}
+)
+```
+
+Always include `network_access = { vpce_ids = var.argocd_vpce_ids }` in the Argo CD block.
+
+## Module source paths
+
+- Examples reference the root module as `../../`
+- Examples reference the CodeConnections submodule as `../../modules/argocd-codeconnections`
+
+## Provider blocks in examples
+
+Only declare providers that the example actually uses:
+- `aws` — always
+- `tls` — always (used by root module for OIDC certificate)
+- `kubernetes` — only if the example creates Kubernetes resources directly
+- `helm` — only if the example deploys Helm charts directly
+
+Do not add `kubernetes` or `helm` providers just because the root module exists — the root module handles them internally when needed.

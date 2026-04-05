@@ -1,0 +1,9 @@
+# markdownlint: https://github.com/DavidAnson/markdownlint
+# MD060 (table-column-style): "compact" for hand-written tables (| --- | separators).
+# Root README disables MD060 between markdownlint-disable/enable comments wrapping
+# the terraform-docs output (<!-- BEGIN_TF_DOCS --> … <!-- END_TF_DOCS -->).
+default: true
+# MD013 (line-length): disabled — long lines are common in README tables and terraform-docs output.
+MD013: false
+MD060:
+  style: "compact"

@@ -41,7 +41,7 @@ output "s3_role_arns" {
 }
 
 output "loki_logs_bucket_name" {
-  description = "Name of the S3 bucket created for Loki storage (loki-logs-geonet-dev)"
+  description = "Name of the S3 bucket created for Loki storage (`{cluster_name}-loki-logs`)"
   value       = aws_s3_bucket.loki_logs.id
 }
 

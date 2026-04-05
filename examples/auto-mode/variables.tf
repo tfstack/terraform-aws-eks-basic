@@ -7,11 +7,11 @@ variable "aws_region" {
 variable "cluster_name" {
   description = "Name of the EKS cluster"
   type        = string
-  default     = "eks-basic"
+  default     = "eks-automode"
 }
 
 variable "cluster_version" {
-  description = "Kubernetes version for the EKS cluster"
+  description = "Kubernetes version for the EKS cluster (Auto Mode requires 1.29+)"
   type        = string
   default     = "1.35"
 }
@@ -31,7 +31,7 @@ variable "public_access_cidrs" {
 }
 
 variable "private_access_cidrs" {
-  description = "CIDR blocks allowed to reach the private EKS API endpoint (within the VPC)."
+  description = "CIDR blocks allowed to reach the private EKS API endpoint (within the VPC). Only relevant when endpoint_public_access = false or both modes are active."
   type        = list(string)
   default     = []
 }

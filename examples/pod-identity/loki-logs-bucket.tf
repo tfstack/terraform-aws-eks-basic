@@ -1,9 +1,10 @@
-# S3 bucket for Loki chunks and index (created by this example; IAM wired via module.eks s3_access)
+# S3 bucket for Loki chunks and index (created by this example; IAM wired via module.eks s3_access).
+# Bucket name uses cluster_name so it is unique in your account and avoids a hard-coded global S3 name.
 resource "aws_s3_bucket" "loki_logs" {
-  bucket = "loki-logs-geonet-dev"
+  bucket = "${var.cluster_name}-loki-logs"
 
   tags = merge(local.tags, {
-    Name = "loki-logs-geonet-dev"
+    Name = "${var.cluster_name}-loki-logs"
   })
 }
 

@@ -38,6 +38,21 @@ output "oidc_provider_arn" {
   value       = module.eks.oidc_provider_arn
 }
 
+output "fargate_role_arn" {
+  description = "ARN of the Fargate pod execution IAM role"
+  value       = module.eks.fargate_role_arn
+}
+
+output "fargate_profiles" {
+  description = "Map of EKS Fargate profiles created"
+  value       = module.eks.fargate_profiles
+}
+
+output "fargate_access_entry_arn" {
+  description = "ARN of the module-managed Fargate access entry (when created)"
+  value       = module.eks.fargate_access_entry_arn
+}
+
 output "argocd_connection_ids" {
   description = "Map of CodeConnection UUIDs keyed by connection name. Use these UUIDs in Argo CD Application repoURLs."
   value       = var.argocd_idc_instance_arn != null ? module.argocd_connections[0].connection_ids : null

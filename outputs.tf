@@ -276,3 +276,8 @@ output "cluster_capability_role_arns" {
   description = "Map of IAM role ARNs for EKS capabilities created by the module (keyed by capability name). Use for ACK controller config or external reference."
   value       = { for k, r in aws_iam_role.capability : k => r.arn }
 }
+
+output "cluster_capability_role_names" {
+  description = "Map of IAM role names for EKS capabilities created by the module (same keys as cluster_capability_role_arns). Use for aws_iam_role_policy.role and similar APIs that expect a role name."
+  value       = { for k, r in aws_iam_role.capability : k => r.name }
+}
