@@ -66,13 +66,20 @@ resource "aws_eks_fargate_profile" "this" {
     for_each = each.value.selectors
     content {
       namespace = selector.value.namespace
-      labels    = try(selector.value.labels, null)
+      # coalesce: optional labels are null when omitted; AWS returns {} on read — matching avoids output/state drift.
+      labels = coalesce(selector.value.labels, {})
     }
   }
 
   tags = merge(var.tags, each.value.tags)
 
-  depends_on = [aws_eks_cluster.this]
+  depends_on = [
+    aws_eks_cluster.this,
+    # Role must exist and be attachable before the profile can use it (BYO role: attachment count is 0).
+    aws_iam_role_policy_attachment.eks_fargate,
+    # API auth clusters need the FARGATE_LINUX access entry before Fargate can run workloads reliably.
+    aws_eks_access_entry.fargate,
+  ]
 }
 
 ################################################################################

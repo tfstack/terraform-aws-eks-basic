@@ -1,0 +1,31 @@
+# Copy to terraform.tfvars and set your values.
+# Add terraform.tfvars to .gitignore if it contains account-specific data.
+
+# Cluster access (required for kubectl)
+access_entries = {
+  admin = {
+    principal_arn = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
+    type          = "STANDARD"
+    policy_associations = {
+      admin = {
+        policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+        access_scope = { type = "cluster" }
+      }
+    }
+  }
+}
+
+# Optional: API endpoint (defaults: public, 0.0.0.0/0)
+# endpoint_public_access = false
+# private_access_cidrs   = ["10.0.0.0/8"]
+# public_access_cidrs    = ["203.0.113.10/32"]
+
+# Optional: Argo CD capability (requires IAM Identity Center). Uncomment and set.
+# argocd_idc_instance_arn = "arn:aws:sso:::instance/ssoins-xxxxxxxxxxxxx"
+# argocd_rbac_role_mappings = [
+#   { role = "ADMIN", identity = [{ type = "SSO_USER", id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }] }
+# ]
+# argocd_vpce_ids = [] # or ["vpce-xxxxxxxx"] for private Argo CD UI only
+
+# Optional:
+# fargate_namespace = "app"

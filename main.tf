@@ -859,7 +859,10 @@ resource "aws_eks_addon" "before_compute" {
   depends_on = [
     time_sleep.this,
     aws_iam_role.addon,
-    aws_eks_pod_identity_association.addon
+    aws_eks_pod_identity_association.addon,
+    # Pure Fargate: vpc-cni / other before_compute addons must not run until Fargate
+    # profiles exist, or scheduling fails (e.g. InsufficientNumberOfReplicas).
+    aws_eks_fargate_profile.this,
   ]
 }
 
@@ -884,6 +887,9 @@ resource "aws_eks_addon" "this" {
     time_sleep.this,
     aws_eks_node_group.this,
     aws_iam_role.addon,
-    aws_eks_pod_identity_association.addon
+    aws_eks_pod_identity_association.addon,
+    # Fargate-only clusters have no node groups; without this, CoreDNS (computeType
+    # fargate) can be created before profiles exist and stays DEGRADED — no capacity.
+    aws_eks_fargate_profile.this,
   ]
 }

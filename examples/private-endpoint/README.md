@@ -31,5 +31,6 @@ Then run `kubectl get nodes` (with AWS credentials if needed, e.g. `aws-vault ex
 
 ## Usage
 
+- Copy `terraform.tfvars.example` to `terraform.tfvars` and set `access_entries`.
 - Run `terraform init`, `terraform plan`, `terraform apply`.
 - Connect from a network that can reach the private endpoint (e.g. VPN). Use `cluster_endpoint` or `cluster_endpoint_hostname` outputs if needed.

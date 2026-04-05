@@ -1,0 +1,67 @@
+# Copy to terraform.tfvars. Repo .gitignore ignores *.tfvars.
+#
+# One VPC, three EKS clusters (classic EC2, Fargate, Auto Mode), shared networking.
+# Each cluster has its own Argo CD capability and its own CodeConnections (three GitHub connections).
+# Argo CD settings below are shared (same IdC / RBAC / VPCE) but apply to all three UIs.
+
+aws_region = "ap-southeast-2"
+# Name tag for the shared VPC. The VPC module tags subnets with kubernetes.io/cluster/<cluster_names.classic>.
+vpc_name = "eks-shared"
+
+tags = {
+  Environment = "dev"
+  ManagedBy   = "terraform"
+}
+
+# Must be unique and stable: classic name is used by the VPC module for kubernetes.io/cluster/<name> on subnets.
+# Keep names aligned with kube-infra EBS CSI overlays: eks-1 = classic (ebs.csi.aws.com), eks-2 = Auto Mode
+# (ebs.csi.eks.amazonaws.com). See README "EBS CSI and kube-infra".
+cluster_names = {
+  classic  = "eks-1" # EC2 managed node groups
+  automode = "eks-2" # EKS Auto Mode
+  fargate  = "eks-3" # Fargate only
+}
+
+kubernetes_version = "1.35"
+
+# ── API access (all three clusters) ─────────────────────────────────────────
+endpoint_public_access = true
+public_access_cidrs    = ["0.0.0.0/0"]
+# private_access_cidrs = ["10.0.0.0/8"]
+
+# ── Access entries (per cluster; empty ok — cluster creator admin is enabled on each) ──
+access_entries_classic  = {}
+access_entries_fargate  = {}
+access_entries_automode = {}
+
+# Example — same admin principal on all three (replace 123456789012 and role name):
+# access_entries_classic = {
+#   admin = {
+#     principal_arn = "arn:aws:iam::123456789012:role/MyAdminRole"
+#     type          = "STANDARD"
+#     policy_associations = {
+#       admin = {
+#         policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+#         access_scope = { type = "cluster" }
+#       }
+#     }
+#   }
+# }
+# access_entries_fargate  = { ... same structure ... }
+# access_entries_automode = { ... same structure ... }
+
+# ── Argo CD (all three clusters) + three CodeConnections ────────────────────
+# Set to null to skip Argo CD and CodeConnections on every cluster.
+argocd_idc_instance_arn = null
+# argocd_idc_instance_arn = "arn:aws:sso:::instance/ssoins-xxxxxxxxxxxxx"
+
+argocd_rbac_role_mappings = []
+# argocd_rbac_role_mappings = [
+#   { role = "ADMIN", identity = [{ type = "SSO_USER", id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }] }
+# ]
+
+argocd_vpce_ids = []
+# argocd_vpce_ids = ["vpce-xxxxxxxx"] # private Argo CD UI; KNOWN BUG if toggling public/private in-place
+
+# ── Fargate profile namespace ───────────────────────────────────────────────
+fargate_namespace = "app"
