@@ -27,9 +27,18 @@ Shared **tfvars** (one block for all three): `argocd_idc_instance_arn`, `argocd_
 
 The **Fargate** cluster has no **Pod Identity** agent. For the AWS Load Balancer Controller (or any addon that needs AWS API access), use **IRSA** only.
 
+## Fargate cluster: IRSA (ALB controller + SQS / KEDA)
+
+[EKS Pod Identity is not supported for pods on Fargate](https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html). This example uses **IRSA** (OIDC) for AWS API access from Fargate workloads where needed.
+
+- **AWS Load Balancer Controller:** `aws_load_balancer_controller_identity_type = "irsa"`. After apply, use `terraform output -raw fargate_aws_load_balancer_controller_role_arn` for the controller ServiceAccount `eks.amazonaws.com/role-arn` (see `kube-infra` ALB overlay for eks-3).
+- **Celery SQS + KEDA:** `enable_sqs_access = true` with **`sqs_identity_type = "irsa"`** on the Fargate module only. Classic and Auto Mode clusters keep **`sqs_identity_type = "pod_identity"`**. After apply, use **`terraform output -json fargate_sqs_role_arns`** — keys **`celery/celery-workload`** and **`keda/keda-operator`**. Annotate those Kubernetes ServiceAccounts in **kube-devops-apps** (celery eks-3 overlay) and **kube-infra** (KEDA eks-3 overlay) with `eks.amazonaws.com/role-arn: <arn>`. IAM role names follow `terraform-aws-eks-basic/sqs-iam.tf`: `<cluster_name>-sqs-<namespace>-<sa>-role` with `/` in the map key replaced by `-` (e.g. `eks-3-sqs-celery-celery-workload-role` when `cluster_names.fargate = "eks-3"`).
+
+The **EKS Pod Identity Agent** add-on remains enabled on the Fargate cluster for consistency with other examples; it does **not** grant Pod Identity credentials to Fargate pods.
+
 This example:
 
-- Adds **Fargate profiles** for `kube-system`, `aws-load-balancer-controller`, `gatekeeper-system`, **`keda`**, and the **default app** namespace (`fargate_namespace`, e.g. `app`).
+- Adds **Fargate profiles** for `kube-system`, `aws-load-balancer-controller`, `gatekeeper-system`, **`keda`**, **`workload_sqs`**, and the **default app** namespace (`fargate_namespace`, e.g. `app`). Profile selectors are in `main.tf`.
 - When **`argocd_idc_instance_arn` is set**, merges an **`argocd`** profile so the EKS **Argo CD** capability (namespace `argocd`) can schedule on this Fargate-only cluster.
 - Sets `enable_aws_load_balancer_controller = true`, `aws_load_balancer_controller_identity_type = "irsa"`.
 
@@ -60,3 +69,4 @@ aws eks update-kubeconfig --name $(terraform output -raw automode_cluster_name) 
 
 - `classic_argocd_connection_ids`, `fargate_argocd_connection_ids`, `automode_argocd_connection_ids` — maps keyed by connection `name` (e.g. `github-eks-1`).
 - `fargate_aws_load_balancer_controller_role_arn` — IRSA role for ALB controller on the Fargate cluster.
+- `fargate_sqs_role_arns` — map of IRSA role ARNs for SQS (`celery/celery-workload`, `keda/keda-operator`) on the Fargate cluster.
