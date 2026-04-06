@@ -17,6 +17,8 @@ provider "aws" {
   region = var.aws_region
 }
 
+data "aws_caller_identity" "current" {}
+
 # Fargate and Auto Mode cluster subnet tags merged into vpc tags so aws_subnet owns them.
 # aws_ec2_tag would conflict with aws_subnet in AWS provider v6 (both fighting over the same tag keys).
 #
@@ -28,6 +30,27 @@ locals {
     "kubernetes.io/cluster/${var.cluster_names.fargate}"  = "shared"
     "kubernetes.io/cluster/${var.cluster_names.automode}" = "shared"
   })
+
+  ack_kro_capabilities = {
+    ack = {
+      iam_policy_arns = {
+        sqs = "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
+      }
+    }
+    kro = {}
+  }
+
+  sqs_access_queue_arn = {
+    classic  = "arn:aws:sqs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${var.cluster_names.classic}-celery-jobs"
+    fargate  = "arn:aws:sqs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${var.cluster_names.fargate}-celery-jobs"
+    automode = "arn:aws:sqs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${var.cluster_names.automode}-celery-jobs"
+  }
+
+  sqs_access_queue_arn_dlq = {
+    classic  = "arn:aws:sqs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${var.cluster_names.classic}-celery-jobs-dlq"
+    fargate  = "arn:aws:sqs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${var.cluster_names.fargate}-celery-jobs-dlq"
+    automode = "arn:aws:sqs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${var.cluster_names.automode}-celery-jobs-dlq"
+  }
 }
 
 # One VPC for three clusters. enable_eks_tags adds kubernetes.io/cluster/<classic>=shared via eks_cluster_name.
@@ -101,7 +124,7 @@ module "eks_classic" {
   }
 
   capabilities = merge(
-    { ack = {}, kro = {} },
+    local.ack_kro_capabilities,
     var.argocd_idc_instance_arn != null ? {
       argocd = {
         access_entry_policy_associations = [{
@@ -129,6 +152,26 @@ module "eks_classic" {
     { namespace = "sm-operator-system", service_account = "awssm-sync" },
   ]
   secrets_manager_secret_name_prefixes = ["bitwarden/sm-operator"]
+
+  enable_sqs_access = true
+  sqs_identity_type = "pod_identity"
+  sqs_access = [
+    {
+      namespace       = "celery"
+      service_account = "celery-workload"
+      queue_arns = [
+        local.sqs_access_queue_arn.classic,
+        local.sqs_access_queue_arn_dlq.classic,
+      ]
+      mode = "consumer"
+    },
+    {
+      namespace       = "keda"
+      service_account = "keda-operator"
+      queue_arns      = [local.sqs_access_queue_arn.classic]
+      mode            = "read_only"
+    },
+  ]
 
   tags = var.tags
 }
@@ -159,6 +202,10 @@ module "eks_fargate" {
       before_compute = true
       addon_version  = "v1.21.1-eksbuild.7"
     }
+    eks-pod-identity-agent = {
+      before_compute = true
+      addon_version  = "v1.3.10-eksbuild.2"
+    }
   }
 
   # Per-namespace profiles (Fargate matches namespace only, not labels, unless you add selectors).
@@ -182,6 +229,10 @@ module "eks_fargate" {
         selectors  = [{ namespace = "keda" }]
         subnet_ids = module.vpc.private_subnet_ids
       }
+      workload_sqs = {
+        selectors  = [{ namespace = "celery" }]
+        subnet_ids = module.vpc.private_subnet_ids
+      }
       default = {
         selectors  = [{ namespace = var.fargate_namespace }]
         subnet_ids = module.vpc.private_subnet_ids
@@ -199,7 +250,7 @@ module "eks_fargate" {
   aws_load_balancer_controller_identity_type = "irsa"
 
   capabilities = merge(
-    { ack = {}, kro = {} },
+    local.ack_kro_capabilities,
     var.argocd_idc_instance_arn != null ? {
       argocd = {
         access_entry_policy_associations = [{
@@ -217,6 +268,28 @@ module "eks_fargate" {
       }
     } : {}
   )
+
+  # Fargate: EKS Pod Identity is not supported for pods on Fargate (AWS). Use IRSA for SQS roles
+  # and annotate ServiceAccounts (kube-devops-apps celery SA; kube-infra keda-operator SA on eks-3).
+  enable_sqs_access = true
+  sqs_identity_type = "irsa"
+  sqs_access = [
+    {
+      namespace       = "celery"
+      service_account = "celery-workload"
+      queue_arns = [
+        local.sqs_access_queue_arn.fargate,
+        local.sqs_access_queue_arn_dlq.fargate,
+      ]
+      mode = "consumer"
+    },
+    {
+      namespace       = "keda"
+      service_account = "keda-operator"
+      queue_arns      = [local.sqs_access_queue_arn.fargate]
+      mode            = "read_only"
+    },
+  ]
 
   tags = var.tags
 }
@@ -243,7 +316,7 @@ module "eks_automode" {
   addons              = {}
 
   capabilities = merge(
-    { ack = {}, kro = {} },
+    local.ack_kro_capabilities,
     var.argocd_idc_instance_arn != null ? {
       argocd = {
         access_entry_policy_associations = [{
@@ -271,6 +344,26 @@ module "eks_automode" {
     { namespace = "sm-operator-system", service_account = "awssm-sync" },
   ]
   secrets_manager_secret_name_prefixes = ["bitwarden/sm-operator"]
+
+  enable_sqs_access = true
+  sqs_identity_type = "pod_identity"
+  sqs_access = [
+    {
+      namespace       = "celery"
+      service_account = "celery-workload"
+      queue_arns = [
+        local.sqs_access_queue_arn.automode,
+        local.sqs_access_queue_arn_dlq.automode,
+      ]
+      mode = "consumer"
+    },
+    {
+      namespace       = "keda"
+      service_account = "keda-operator"
+      queue_arns      = [local.sqs_access_queue_arn.automode]
+      mode            = "read_only"
+    },
+  ]
 
   tags = var.tags
 }
