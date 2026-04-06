@@ -56,6 +56,11 @@ output "fargate_aws_load_balancer_controller_role_arn" {
   value       = module.eks_fargate.aws_load_balancer_controller_role_arn
 }
 
+output "fargate_sqs_role_arns" {
+  description = "IRSA role ARNs for SQS (celery consumer + KEDA metrics) on the Fargate cluster when sqs_identity_type = irsa"
+  value       = module.eks_fargate.sqs_role_arns
+}
+
 output "fargate_profiles" {
   value = module.eks_fargate.fargate_profiles
 }
