@@ -307,7 +307,9 @@ private_access_cidrs   = ["10.0.0.0/8"]
 
 ## Modules
 
-No modules.
+| Name | Source | Version |
+|------|--------|---------|
+| <a name="module_karpenter"></a> [karpenter](#module\_karpenter) | terraform-aws-modules/eks/aws//modules/karpenter | ~> 21.3.0 |
 
 ## Resources
 
@@ -315,6 +317,7 @@ No modules.
 |------|------|
 | [aws_cloudwatch_log_group.this_allow_destroy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
 | [aws_cloudwatch_log_group.this_prevent_destroy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
+| [aws_ec2_tag.karpenter_subnet_discovery](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ec2_tag) | resource |
 | [aws_eks_access_entry.fargate](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_entry) | resource |
 | [aws_eks_access_entry.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_entry) | resource |
 | [aws_eks_access_policy_association.capability](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_access_policy_association) | resource |
@@ -331,6 +334,7 @@ No modules.
 | [aws_eks_pod_identity_association.dynamodb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.ebs_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.external_dns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
+| [aws_eks_pod_identity_association.karpenter](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.kinesis](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.secrets_manager](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
@@ -470,6 +474,7 @@ No modules.
 | <a name="input_enable_dynamodb_access"></a> [enable\_dynamodb\_access](#input\_enable\_dynamodb\_access) | Whether to create IAM roles for DynamoDB access (IRSA or Pod Identity per dynamodb\_identity\_type). One role per dynamodb\_access entry. | `bool` | `false` | no |
 | <a name="input_enable_ebs_csi_driver"></a> [enable\_ebs\_csi\_driver](#input\_enable\_ebs\_csi\_driver) | Whether to create IAM role for EBS CSI driver (IRSA or Pod Identity per ebs\_csi\_driver\_identity\_type) | `bool` | `false` | no |
 | <a name="input_enable_external_dns"></a> [enable\_external\_dns](#input\_enable\_external\_dns) | Whether to create IAM role for ExternalDNS (IRSA or Pod Identity per external\_dns\_identity\_type) | `bool` | `false` | no |
+| <a name="input_enable_karpenter"></a> [enable\_karpenter](#input\_enable\_karpenter) | Whether to create Karpenter IAM (controller + node roles), interruption SQS queue, EventBridge rules, and EKS access entry for the node role (via terraform-aws-modules/eks/karpenter). Mutually exclusive with enable\_automode. | `bool` | `false` | no |
 | <a name="input_enable_kinesis_access"></a> [enable\_kinesis\_access](#input\_enable\_kinesis\_access) | Whether to create IAM roles for Kinesis access (IRSA or Pod Identity per kinesis\_identity\_type). One role per kinesis\_access entry. | `bool` | `false` | no |
 | <a name="input_enable_s3"></a> [enable\_s3](#input\_enable\_s3) | Whether to create IAM roles for S3 access (IRSA or Pod Identity per s3\_identity\_type). One role per s3\_access entry. | `bool` | `false` | no |
 | <a name="input_enable_secrets_manager"></a> [enable\_secrets\_manager](#input\_enable\_secrets\_manager) | Whether to create IAM role for Secrets Manager (IRSA or Pod Identity per secrets\_manager\_identity\_type) | `bool` | `false` | no |
@@ -485,6 +490,10 @@ No modules.
 | <a name="input_fargate_pod_execution_role_path"></a> [fargate\_pod\_execution\_role\_path](#input\_fargate\_pod\_execution\_role\_path) | IAM path for the created Fargate pod execution role (when create\_fargate\_pod\_execution\_role is true). | `string` | `"/"` | no |
 | <a name="input_fargate_pod_execution_role_permissions_boundary"></a> [fargate\_pod\_execution\_role\_permissions\_boundary](#input\_fargate\_pod\_execution\_role\_permissions\_boundary) | ARN of a permissions boundary to attach to the created Fargate pod execution role (when create\_fargate\_pod\_execution\_role is true). | `string` | `null` | no |
 | <a name="input_fargate_profiles"></a> [fargate\_profiles](#input\_fargate\_profiles) | Map of EKS Fargate profile configurations (key = profile name). Fargate pods require private subnets with NAT gateway access. Per-profile subnet\_ids override the module-level subnet\_ids. Pod execution IAM is controlled by create\_fargate\_pod\_execution\_role / fargate\_pod\_execution\_role\_arn. Access entry behavior: create\_fargate\_access\_entry and fargate\_access\_entry\_type when cluster\_authentication\_mode is API or API\_AND\_CONFIG\_MAP; for CONFIG\_MAP-only clusters you must grant the pod execution role access yourself (e.g. aws-auth). | <pre>map(object({<br/>    selectors = list(object({<br/>      namespace = string<br/>      labels    = optional(map(string))<br/>    }))<br/>    subnet_ids = optional(list(string))<br/>    tags       = optional(map(string), {})<br/>  }))</pre> | `{}` | no |
+| <a name="input_karpenter_discovery_subnet_ids"></a> [karpenter\_discovery\_subnet\_ids](#input\_karpenter\_discovery\_subnet\_ids) | Private subnet IDs to tag with karpenter.sh/discovery = cluster name for Karpenter subnet discovery. | `list(string)` | `[]` | no |
+| <a name="input_karpenter_identity_type"></a> [karpenter\_identity\_type](#input\_karpenter\_identity\_type) | Credential mode for the Karpenter controller. Only pod\_identity is wired (EKS Pod Identity association); use eks-pod-identity-agent addon. | `string` | `"pod_identity"` | no |
+| <a name="input_karpenter_namespace"></a> [karpenter\_namespace](#input\_karpenter\_namespace) | Kubernetes namespace for the Karpenter controller service account (must match GitOps Helm). | `string` | `"karpenter"` | no |
+| <a name="input_karpenter_service_account"></a> [karpenter\_service\_account](#input\_karpenter\_service\_account) | Kubernetes service account name for Karpenter (must match Helm chart). | `string` | `"karpenter"` | no |
 | <a name="input_kinesis_access"></a> [kinesis\_access](#input\_kinesis\_access) | List of Kinesis access configs. Each entry gets its own IAM role (namespace + service\_account + stream\_arns + mode). Do not use namespace 'default' or 'kube-system'. | <pre>list(object({<br/>    namespace       = string<br/>    service_account = string<br/>    stream_arns     = list(string)<br/>    mode            = optional(string, "consumer") # consumer, read_only<br/>  }))</pre> | `[]` | no |
 | <a name="input_kinesis_identity_type"></a> [kinesis\_identity\_type](#input\_kinesis\_identity\_type) | Identity type for Kinesis access. Use 'pod\_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
 | <a name="input_kubernetes_version"></a> [kubernetes\_version](#input\_kubernetes\_version) | Kubernetes version to use for the EKS cluster | `string` | n/a | yes |
@@ -530,7 +539,7 @@ No modules.
 | <a name="output_cluster_name"></a> [cluster\_name](#output\_cluster\_name) | The name of the EKS cluster |
 | <a name="output_cluster_oidc_issuer_url"></a> [cluster\_oidc\_issuer\_url](#output\_cluster\_oidc\_issuer\_url) | The URL on the EKS cluster for the OpenID Connect identity provider |
 | <a name="output_cluster_platform_version"></a> [cluster\_platform\_version](#output\_cluster\_platform\_version) | Platform version for the cluster |
-| <a name="output_cluster_pod_identity_associations"></a> [cluster\_pod\_identity\_associations](#output\_cluster\_pod\_identity\_associations) | Map of EKS Pod Identity associations (addon, ALB controller, External DNS, EBS CSI driver, Cluster Autoscaler, Secrets Manager, S3) when using Pod Identity |
+| <a name="output_cluster_pod_identity_associations"></a> [cluster\_pod\_identity\_associations](#output\_cluster\_pod\_identity\_associations) | Map of EKS Pod Identity associations (addon, ALB controller, External DNS, EBS CSI driver, Cluster Autoscaler, Karpenter, Secrets Manager, S3) when using Pod Identity |
 | <a name="output_cluster_primary_security_group_id"></a> [cluster\_primary\_security\_group\_id](#output\_cluster\_primary\_security\_group\_id) | Cluster security group that was created by Amazon EKS for the cluster |
 | <a name="output_cluster_security_group_id"></a> [cluster\_security\_group\_id](#output\_cluster\_security\_group\_id) | ID of the cluster security group |
 | <a name="output_cluster_service_cidr"></a> [cluster\_service\_cidr](#output\_cluster\_service\_cidr) | The IPv4 CIDR block where Kubernetes pod and service IP addresses are assigned from |
@@ -543,6 +552,9 @@ No modules.
 | <a name="output_fargate_access_entry_arn"></a> [fargate\_access\_entry\_arn](#output\_fargate\_access\_entry\_arn) | ARN of the module-managed Fargate access entry (when created) |
 | <a name="output_fargate_profiles"></a> [fargate\_profiles](#output\_fargate\_profiles) | Map of EKS Fargate profiles created |
 | <a name="output_fargate_role_arn"></a> [fargate\_role\_arn](#output\_fargate\_role\_arn) | Fargate pod execution IAM role ARN in use (module-created or supplied via fargate\_pod\_execution\_role\_arn when fargate\_profiles is non-empty) |
+| <a name="output_karpenter_controller_role_arn"></a> [karpenter\_controller\_role\_arn](#output\_karpenter\_controller\_role\_arn) | IAM role ARN for the Karpenter controller (when enable\_karpenter) |
+| <a name="output_karpenter_interruption_queue_name"></a> [karpenter\_interruption\_queue\_name](#output\_karpenter\_interruption\_queue\_name) | SQS queue name for Karpenter interruption handling (Helm settings.interruptionQueue) |
+| <a name="output_karpenter_node_role_name"></a> [karpenter\_node\_role\_name](#output\_karpenter\_node\_role\_name) | IAM role name for nodes launched by Karpenter (EC2NodeClass spec.role) |
 | <a name="output_kinesis_role_arns"></a> [kinesis\_role\_arns](#output\_kinesis\_role\_arns) | Map of IAM role ARNs for Kinesis access (when enable\_kinesis\_access), keyed by namespace/service\_account |
 | <a name="output_kms_key_arn"></a> [kms\_key\_arn](#output\_kms\_key\_arn) | The Amazon Resource Name (ARN) of the key |
 | <a name="output_kms_key_id"></a> [kms\_key\_id](#output\_kms\_key\_id) | The globally unique identifier for the key |
