@@ -802,7 +802,14 @@ resource "aws_eks_node_group" "this" {
   }
 
   labels = try(each.value.labels, {})
-  tags   = merge(var.tags, try(each.value.tags, {}))
+  tags = merge(
+    var.tags,
+    try(each.value.tags, {}),
+    var.enable_cluster_autoscaler_iam ? {
+      "k8s.io/cluster-autoscaler/enabled"                      = "true"
+      "k8s.io/cluster-autoscaler/${aws_eks_cluster.this.name}" = "owned"
+    } : {}
+  )
 
   timeouts {
     create = "60m"
