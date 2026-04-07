@@ -86,6 +86,14 @@ GitOps manifests live at `/home/johna/workspace/k8sforge/kube-infra`.
 Argo CD Application `repoURL` must use the CodeConnections UUID from Terraform output `argocd_connection_ids`.
 Bootstrap secret commands are documented in `bootstrap/README.md` in that repo.
 
+Cursor rules for GitOps layout, hub-spoke ApplicationSets, spoke `argocd` namespace / RBAC reconcile, and EBS CSI vs Auto Mode are in **kube-infra** `.cursor/rules/infrastructure-conventions.mdc` — read that when editing `clusters/`, `bootstrap/`, or `infrastructure/aws-ebs-csi-driver/`.
+
+### Hub-spoke example (`examples/hub-spoke-argocd`)
+
+- Argo CD capability lives on the **hub** only; spokes get **`access_entries`** merging `argocd_hub` so the hub capability IAM role has cluster-admin (or scoped policy) on each spoke.
+- Cluster registration in kube-infra uses **EKS cluster ARN** as `server` in the cluster Secret when using managed Argo CD `awsAuthConfig` (not the public API URL).
+- Terraform does **not** create the empty `argocd` namespace on spokes; GitOps **`infrastructure/argocd-destination-namespace/`** in kube-infra does (see kube-infra rules). Do not spend cycles on “wrong EBS CSI” until spoke RBAC sync errors (`namespaces "argocd" not found`) are ruled out.
+
 ## Markdown
 
 - **`README.md` terraform-docs block:** Do **not** edit anything between `<!-- BEGIN_TF_DOCS -->` and `<!-- END_TF_DOCS -->` — it is auto-generated. Regenerate with terraform-docs after changing root-module Terraform. Do **not** remove the `markdownlint-disable MD060` / `markdownlint-enable MD060` HTML comments that wrap that block (they live outside the markers).
