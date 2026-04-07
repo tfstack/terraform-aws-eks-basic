@@ -170,21 +170,6 @@ module "eks" {
   ebs_csi_driver_identity_type = "pod_identity"
   enable_ebs_csi_driver        = true
 
-  # ── Karpenter (Pod Identity) ────────────────────────────────────────────────
-  # Node autoscaling via Karpenter; requires eks-pod-identity-agent addon above.
-  # Tags private subnets for karpenter.sh/discovery (see karpenter_discovery_subnet_ids).
-  # ────────────────────────────────────────────────────────────────────────────
-  enable_karpenter               = true
-  karpenter_identity_type        = "pod_identity"
-  karpenter_discovery_subnet_ids = module.vpc.private_subnet_ids
-
-  # ── Cluster Autoscaler (Pod Identity) ───────────────────────────────────────
-  # IAM for in-cluster Cluster Autoscaler (GitOps manifest). EC2 managed node
-  # groups only — not for Auto Mode or Fargate. Requires eks-pod-identity-agent.
-  # ────────────────────────────────────────────────────────────────────────────
-  # enable_cluster_autoscaler_iam    = true
-  # cluster_autoscaler_identity_type = "pod_identity"
-
   # ── Secrets Manager (Pod Identity) ──────────────────────────────────────────
   # Grants named service accounts access to Secrets Manager via Pod Identity.
   # Pod Identity is supported on EC2 nodes; NOT supported on Fargate (use IRSA there).
