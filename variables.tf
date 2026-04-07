@@ -206,6 +206,12 @@ variable "enable_aws_load_balancer_controller" {
   default     = false
 }
 
+variable "enable_cluster_autoscaler_iam" {
+  description = "Whether to create IAM role for Cluster Autoscaler (IRSA or Pod Identity per cluster_autoscaler_identity_type). For EC2 managed node groups only; not supported with enable_automode. When true, adds k8s.io/cluster-autoscaler/* tags to managed node groups for ASG autodiscovery."
+  type        = bool
+  default     = false
+}
+
 variable "enable_ebs_csi_driver" {
   description = "Whether to create IAM role for EBS CSI driver (IRSA or Pod Identity per ebs_csi_driver_identity_type)"
   type        = bool
@@ -295,6 +301,29 @@ variable "ebs_csi_driver_service_account" {
   description = "Kubernetes service account name for EBS CSI driver. Used for IRSA OIDC condition and when ebs_csi_driver_identity_type = 'pod_identity'."
   type        = string
   default     = "ebs-csi-controller-sa"
+}
+
+variable "cluster_autoscaler_identity_type" {
+  description = "Identity type for Cluster Autoscaler. Use 'pod_identity' to create Pod Identity association; requires eks-pod-identity-agent addon."
+  type        = string
+  default     = "irsa"
+
+  validation {
+    condition     = contains(["irsa", "pod_identity"], var.cluster_autoscaler_identity_type)
+    error_message = "cluster_autoscaler_identity_type must be 'irsa' or 'pod_identity'."
+  }
+}
+
+variable "cluster_autoscaler_namespace" {
+  description = "Kubernetes namespace for Cluster Autoscaler service account. Used for IRSA OIDC condition and when cluster_autoscaler_identity_type = 'pod_identity'."
+  type        = string
+  default     = "kube-system"
+}
+
+variable "cluster_autoscaler_service_account" {
+  description = "Kubernetes service account name for Cluster Autoscaler. Used for IRSA OIDC condition and when cluster_autoscaler_identity_type = 'pod_identity'."
+  type        = string
+  default     = "cluster-autoscaler"
 }
 
 variable "secrets_manager_identity_type" {

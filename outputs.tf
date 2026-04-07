@@ -135,6 +135,11 @@ output "ebs_csi_driver_role_arn" {
   value       = try(aws_iam_role.ebs_csi_driver[0].arn, null)
 }
 
+output "cluster_autoscaler_role_arn" {
+  description = "IAM role ARN for Cluster Autoscaler (when enable_cluster_autoscaler_iam). For IRSA, annotate the cluster-autoscaler ServiceAccount with this ARN."
+  value       = try(aws_iam_role.cluster_autoscaler[0].arn, null)
+}
+
 output "secrets_manager_role_arn" {
   description = "IAM role ARN for Secrets Manager (when enabled)"
   value       = try(aws_iam_role.secrets_manager[0].arn, null)
@@ -161,12 +166,13 @@ output "dynamodb_role_arns" {
 }
 
 output "cluster_pod_identity_associations" {
-  description = "Map of EKS Pod Identity associations (addon, ALB controller, External DNS, EBS CSI driver, Secrets Manager, S3) when using Pod Identity"
+  description = "Map of EKS Pod Identity associations (addon, ALB controller, External DNS, EBS CSI driver, Cluster Autoscaler, Secrets Manager, S3) when using Pod Identity"
   value = merge(
     aws_eks_pod_identity_association.addon,
     length(aws_eks_pod_identity_association.aws_lb_controller) > 0 ? { "aws_lb_controller" = aws_eks_pod_identity_association.aws_lb_controller[0] } : {},
     length(aws_eks_pod_identity_association.external_dns) > 0 ? { "external_dns" = aws_eks_pod_identity_association.external_dns[0] } : {},
     length(aws_eks_pod_identity_association.ebs_csi_driver) > 0 ? { "ebs_csi_driver" = aws_eks_pod_identity_association.ebs_csi_driver[0] } : {},
+    length(aws_eks_pod_identity_association.cluster_autoscaler) > 0 ? { "cluster_autoscaler" = aws_eks_pod_identity_association.cluster_autoscaler[0] } : {},
     { for k, v in aws_eks_pod_identity_association.secrets_manager : "secrets_manager_${k}" => v },
     { for k, v in aws_eks_pod_identity_association.s3 : "s3_${k}" => v },
     { for k, v in aws_eks_pod_identity_association.sqs : "sqs_${k}" => v },

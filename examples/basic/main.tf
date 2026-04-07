@@ -170,6 +170,13 @@ module "eks" {
   ebs_csi_driver_identity_type = "pod_identity"
   enable_ebs_csi_driver        = true
 
+  # ── Cluster Autoscaler (Pod Identity) ───────────────────────────────────────
+  # IAM for in-cluster Cluster Autoscaler (GitOps manifest). EC2 managed node
+  # groups only — not for Auto Mode or Fargate. Requires eks-pod-identity-agent.
+  # ────────────────────────────────────────────────────────────────────────────
+  enable_cluster_autoscaler_iam    = true
+  cluster_autoscaler_identity_type = "pod_identity"
+
   # ── Secrets Manager (Pod Identity) ──────────────────────────────────────────
   # Grants named service accounts access to Secrets Manager via Pod Identity.
   # Pod Identity is supported on EC2 nodes; NOT supported on Fargate (use IRSA there).
