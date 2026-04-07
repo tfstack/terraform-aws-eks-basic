@@ -184,6 +184,7 @@ EKS automatically creates an access entry for each capability role with default 
 | [auto-mode-keda-workload](examples/auto-mode-keda-workload/) | Auto Mode | None | No | SQS IAM for KEDA-managed workers |
 | [private-endpoint](examples/private-endpoint/) | EC2 | None | No | Private API endpoint only |
 | [multi-cluster-shared-vpc](examples/multi-cluster-shared-vpc/) | EC2 + Fargate + Auto Mode | ACK, KRO, optional Argo CD (per cluster) | Optional | One VPC; three clusters; separate Argo CD and CodeConnections each |
+| [hub-spoke-argocd](examples/hub-spoke-argocd/) | Auto Mode (×3) | ACK, KRO, Argo CD on hub only | Required | Hub-and-spoke GitOps: Argo CD on hub deploys to two spoke clusters via access entries |
 
 ## Feature Reference
 
@@ -597,7 +598,8 @@ terraform-aws-eks-basic/
     ├── capabilities-private/     # Private-only EKS and Argo CD
     ├── pod-identity/             # Pod Identity for ALB, External DNS, EBS CSI, Secrets Manager
     ├── private-endpoint/         # EKS with private API endpoint
-    └── multi-cluster-shared-vpc/  # One VPC: classic EC2, Fargate, Auto Mode + optional Argo each
+    ├── multi-cluster-shared-vpc/  # One VPC: classic EC2, Fargate, Auto Mode + optional Argo each
+    └── hub-spoke-argocd/          # Hub-and-spoke GitOps: Argo CD on hub, spoke clusters via access entries
 ```
 
 ## License
