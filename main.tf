@@ -835,13 +835,17 @@ resource "aws_eks_node_group" "this" {
 # EKS Addons
 ################################################################################
 
-# Local values to determine service account role ARN for addons
+# Local values for aws_eks_addon.service_account_role_arn.
+# When this is null, the AWS provider can send serviceAccountRoleArn: "" on UpdateAddon, which AWS
+# rejects with AccessDeniedException "Cross-account pass role is not allowed" (misleading; see
+# https://github.com/hashicorp/terraform-provider-aws/issues/30645). So whenever the module
+# creates aws_iam_role.addon for a key, always pass that role's ARN—even for Pod Identity, where
+# credentials still come from pod_identity_association; the add-on field must not be cleared via
+# an empty string. See: https://docs.aws.amazon.com/eks/latest/userguide/update-addon-role.html
 locals {
   addon_service_account_role_arns = {
     for k, v in var.addons : k => (
-      try(v.service_account_role_arn, null) != null
-      ? v.service_account_role_arn
-      : try(aws_iam_role.addon[k].arn, null)
+      try(v.service_account_role_arn, null) != null ? v.service_account_role_arn : try(aws_iam_role.addon[k].arn, null)
     )
   }
 }
@@ -861,12 +865,19 @@ resource "aws_eks_addon" "before_compute" {
   configuration_values        = try(each.value.configuration_values, null)
   service_account_role_arn    = try(local.addon_service_account_role_arns[each.key], null)
 
+  dynamic "pod_identity_association" {
+    for_each = var.addon_identity_type == "pod_identity" && contains(keys(local.addon_role_config), each.key) ? [local.addon_role_config[each.key]] : []
+    content {
+      role_arn        = aws_iam_role.addon[each.key].arn
+      service_account = pod_identity_association.value.name
+    }
+  }
+
   tags = var.tags
 
   depends_on = [
     time_sleep.this,
     aws_iam_role.addon,
-    aws_eks_pod_identity_association.addon,
     # Pure Fargate: vpc-cni / other before_compute addons must not run until Fargate
     # profiles exist, or scheduling fails (e.g. InsufficientNumberOfReplicas).
     aws_eks_fargate_profile.this,
@@ -888,13 +899,20 @@ resource "aws_eks_addon" "this" {
   configuration_values        = try(each.value.configuration_values, null)
   service_account_role_arn    = try(local.addon_service_account_role_arns[each.key], null)
 
+  dynamic "pod_identity_association" {
+    for_each = var.addon_identity_type == "pod_identity" && contains(keys(local.addon_role_config), each.key) ? [local.addon_role_config[each.key]] : []
+    content {
+      role_arn        = aws_iam_role.addon[each.key].arn
+      service_account = pod_identity_association.value.name
+    }
+  }
+
   tags = var.tags
 
   depends_on = [
     time_sleep.this,
     aws_eks_node_group.this,
     aws_iam_role.addon,
-    aws_eks_pod_identity_association.addon,
     # Fargate-only clusters have no node groups; without this, CoreDNS (computeType
     # fargate) can be created before profiles exist and stays DEGRADED — no capacity.
     aws_eks_fargate_profile.this,

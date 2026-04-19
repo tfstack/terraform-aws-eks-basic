@@ -183,7 +183,15 @@ output "dynamodb_role_arns" {
 output "cluster_pod_identity_associations" {
   description = "Map of EKS Pod Identity associations (addon, ALB controller, External DNS, EBS CSI driver, Cluster Autoscaler, Karpenter, Secrets Manager, S3) when using Pod Identity"
   value = merge(
-    aws_eks_pod_identity_association.addon,
+    var.addon_identity_type == "pod_identity" ? {
+      for k, cfg in local.addon_role_config : k => {
+        cluster_name    = aws_eks_cluster.this.name
+        namespace       = cfg.namespace
+        service_account = cfg.name
+        role_arn        = aws_iam_role.addon[k].arn
+      }
+      if contains(keys(aws_eks_addon.this), k) || contains(keys(aws_eks_addon.before_compute), k)
+    } : {},
     length(aws_eks_pod_identity_association.aws_lb_controller) > 0 ? { "aws_lb_controller" = aws_eks_pod_identity_association.aws_lb_controller[0] } : {},
     length(aws_eks_pod_identity_association.external_dns) > 0 ? { "external_dns" = aws_eks_pod_identity_association.external_dns[0] } : {},
     length(aws_eks_pod_identity_association.ebs_csi_driver) > 0 ? { "ebs_csi_driver" = aws_eks_pod_identity_association.ebs_csi_driver[0] } : {},

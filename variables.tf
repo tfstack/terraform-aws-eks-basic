@@ -198,6 +198,11 @@ variable "addons" {
     service_account_role_arn    = optional(string)
   }))
   default = {}
+
+  validation {
+    condition     = !(contains(keys(var.addons), "external-dns") && var.enable_external_dns)
+    error_message = "Do not use addons[\"external-dns\"] together with enable_external_dns: both target the ExternalDNS service account in the external-dns namespace."
+  }
 }
 
 variable "enable_aws_load_balancer_controller" {
@@ -313,6 +318,12 @@ variable "external_dns_service_account" {
   description = "Kubernetes service account name for External DNS (Pod Identity)."
   type        = string
   default     = "external-dns"
+}
+
+variable "external_dns_hosted_zone_arns" {
+  description = "Optional Route53 hosted zone ARNs for ExternalDNS (enable_external_dns) and the external-dns EKS add-on IAM policy. When null or empty, ChangeResourceRecordSets/ListResourceRecordSets are scoped to all zones in the account (arn:...:route53:::hostedzone/*)."
+  type        = list(string)
+  default     = null
 }
 
 variable "ebs_csi_driver_identity_type" {
@@ -521,7 +532,14 @@ variable "addon_identity_type" {
 }
 
 variable "addon_service_accounts" {
-  description = "Map of addon name to namespace and service account for Pod Identity. Required when addon_identity_type = 'pod_identity' for addons that need a role (e.g. aws-ebs-csi-driver)."
+  description = <<-EOT
+    Map of EKS add-on name (aws_eks_addon key) to Kubernetes namespace and service account name for IAM / Pod Identity.
+    Required when addon_identity_type = "pod_identity" for each add-on in var.addons that needs a module-created role.
+    Typical controller service accounts (see AWS EKS docs): aws-ebs-csi-driver → kube-system / ebs-csi-controller-sa;
+    aws-efs-csi-driver → kube-system / efs-csi-controller-sa; aws-fsx-csi-driver → kube-system / fsx-csi-controller-sa;
+    aws-mountpoint-s3-csi-driver → kube-system / s3-csi-driver-sa; external-dns (community add-on) → external-dns / external-dns.
+    When addon_identity_type = "irsa", defaults for these three keys are built into the module (local.addon_service_accounts); override by passing explicit entries if your chart uses different names.
+  EOT
   type = map(object({
     namespace = string
     name      = string
