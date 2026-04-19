@@ -10,6 +10,22 @@ locals {
       namespace = "kube-system"
       name      = "ebs-csi-controller-sa"
     }
+    "aws-efs-csi-driver" = {
+      namespace = "kube-system"
+      name      = "efs-csi-controller-sa"
+    }
+    "aws-fsx-csi-driver" = {
+      namespace = "kube-system"
+      name      = "fsx-csi-controller-sa"
+    }
+    "aws-mountpoint-s3-csi-driver" = {
+      namespace = "kube-system"
+      name      = "s3-csi-driver-sa"
+    }
+    "external-dns" = {
+      namespace = "external-dns"
+      name      = "external-dns"
+    }
   }
 
   # Addons that get a module-created role: from local.addon_service_accounts (IRSA) or var.addon_service_accounts (Pod Identity).
@@ -90,18 +106,7 @@ resource "aws_iam_role" "addon" {
   ]
 }
 
-# EKS Pod Identity associations for addons (when addon_identity_type = "pod_identity")
-resource "aws_eks_pod_identity_association" "addon" {
-  for_each = {
-    for k, v in local.addon_role_config : k => v
-    if var.addon_identity_type == "pod_identity"
-  }
-
-  cluster_name    = aws_eks_cluster.this.name
-  namespace       = each.value.namespace
-  service_account = each.value.name
-  role_arn        = aws_iam_role.addon[each.key].arn
-}
+# Pod Identity for var.addons is on aws_eks_addon.pod_identity_association (not aws_eks_pod_identity_association).
 
 # Attach AWS managed policy for EBS CSI driver (addon path only; when enable_ebs_csi_driver is false)
 resource "aws_iam_role_policy_attachment" "addon_ebs_csi_driver" {
@@ -112,4 +117,192 @@ resource "aws_iam_role_policy_attachment" "addon_ebs_csi_driver" {
 
   role       = aws_iam_role.addon[each.key].name
   policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "addon_efs_csi_driver" {
+  for_each = {
+    for k, v in local.addon_role_config : k => v
+    if k == "aws-efs-csi-driver"
+  }
+
+  role       = aws_iam_role.addon[each.key].name
+  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy"
+}
+
+# FSx for Lustre CSI: narrower than AmazonFSxFullAccess — FSx API only, EC2/KMS needed by the driver, no CloudWatch/Firehose/DS extras from the managed policy.
+data "aws_iam_policy_document" "addon_fsx_csi_driver" {
+  statement {
+    sid       = "FSxAPI"
+    effect    = "Allow"
+    actions   = ["fsx:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "CreateSLRForFSx"
+    effect    = "Allow"
+    actions   = ["iam:CreateServiceLinkedRole"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "iam:AWSServiceName"
+      values   = ["fsx.amazonaws.com"]
+    }
+  }
+
+  statement {
+    sid       = "CreateSLRForLustreS3Integration"
+    effect    = "Allow"
+    actions   = ["iam:CreateServiceLinkedRole"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "iam:AWSServiceName"
+      values   = ["s3.data-source.lustre.fsx.amazonaws.com"]
+    }
+  }
+
+  statement {
+    sid    = "DescribeEC2VpcResourcesViaFSx"
+    effect = "Allow"
+    actions = [
+      "ec2:DescribeSecurityGroups",
+      "ec2:GetSecurityGroupsForVpc",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeVpcs",
+      "ec2:DescribeRouteTables",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "ForAnyValue:StringEquals"
+      variable = "aws:CalledVia"
+      values   = ["fsx.amazonaws.com"]
+    }
+  }
+
+  statement {
+    sid    = "EC2SecurityGroupsForCSI"
+    effect = "Allow"
+    actions = [
+      "ec2:CreateSecurityGroup",
+      "ec2:DeleteSecurityGroup",
+      "ec2:DescribeSecurityGroups",
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:AuthorizeSecurityGroupEgress",
+      "ec2:RevokeSecurityGroupIngress",
+      "ec2:RevokeSecurityGroupEgress",
+      "ec2:CreateTags",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeVpcs",
+      "ec2:DescribeNetworkInterfaces",
+      "ec2:DescribeAvailabilityZones",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "EC2CreateTagsRouteTableForFsx"
+    effect = "Allow"
+    actions = [
+      "ec2:CreateTags"
+    ]
+    resources = ["arn:${data.aws_partition.current.partition}:ec2:*:*:route-table/*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/AmazonFSx"
+      values   = ["ManagedByAmazonFSx"]
+    }
+    condition {
+      test     = "ForAnyValue:StringEquals"
+      variable = "aws:CalledVia"
+      values   = ["fsx.amazonaws.com"]
+    }
+  }
+
+  statement {
+    sid    = "KMSForEncryptedFileSystems"
+    effect = "Allow"
+    actions = [
+      "kms:CreateGrant",
+      "kms:DescribeKey",
+      "kms:Decrypt",
+      "kms:GenerateDataKey",
+      "kms:GenerateDataKeyWithoutPlaintext",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "addon_fsx_csi_driver" {
+  for_each = {
+    for k, v in local.addon_role_config : k => v
+    if k == "aws-fsx-csi-driver"
+  }
+
+  name   = "${var.name}-fsx-csi-addon-inline"
+  role   = aws_iam_role.addon[each.key].id
+  policy = data.aws_iam_policy_document.addon_fsx_csi_driver.json
+}
+
+# Mountpoint S3 CSI: object-level S3 access only (no bucket administration). Buckets are still wildcard — scope further with a dedicated role if needed.
+data "aws_iam_policy_document" "addon_mountpoint_s3_csi_driver" {
+  statement {
+    sid    = "S3ObjectDataPlane"
+    effect = "Allow"
+    actions = [
+      "s3:GetObject",
+      "s3:GetObjectVersion",
+      "s3:GetObjectAttributes",
+      "s3:GetObjectVersionAttributes",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+      "s3:ListBucketMultipartUploads",
+      "s3:ListBucket",
+      "s3:GetBucketLocation",
+      "s3:ListBucketVersions",
+    ]
+    resources = [
+      "arn:${data.aws_partition.current.partition}:s3:::*",
+      "arn:${data.aws_partition.current.partition}:s3:::*/*",
+    ]
+  }
+
+  statement {
+    sid       = "STSForDirectoryBuckets"
+    effect    = "Allow"
+    actions   = ["sts:GetServiceBearerToken"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "S3ExpressDirectoryBuckets"
+    effect    = "Allow"
+    actions   = ["s3express:CreateSession"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "addon_mountpoint_s3_csi_driver" {
+  for_each = {
+    for k, v in local.addon_role_config : k => v
+    if k == "aws-mountpoint-s3-csi-driver"
+  }
+
+  name   = "${var.name}-mountpoint-s3-addon-inline"
+  role   = aws_iam_role.addon[each.key].id
+  policy = data.aws_iam_policy_document.addon_mountpoint_s3_csi_driver.json
+}
+
+# External DNS EKS community add-on: same Route53-only policy as enable_external_dns (see external-dns-route53-policy.tf).
+resource "aws_iam_role_policy" "addon_external_dns" {
+  for_each = {
+    for k, v in local.addon_role_config : k => v
+    if k == "external-dns"
+  }
+
+  name   = "${var.name}-external-dns-addon-inline"
+  role   = aws_iam_role.addon[each.key].id
+  policy = data.aws_iam_policy_document.external_dns_route53.json
 }

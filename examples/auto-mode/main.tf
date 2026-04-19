@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 6.0"
     }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.30"
+    }
     tls = {
       source  = "hashicorp/tls"
       version = "~> 4.0"
@@ -15,6 +19,14 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+}
+
+data "aws_caller_identity" "current" {}
+
+locals {
+  # ACK SQS queues for celery / KEDA (kube-devops-apps celery overlay); must match queue names in GitOps.
+  celery_jobs_queue_arn = "arn:aws:sqs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${var.cluster_name}-celery-jobs"
+  celery_jobs_dlq_arn   = "arn:aws:sqs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${var.cluster_name}-celery-jobs-dlq"
 }
 
 module "vpc" {
@@ -73,7 +85,28 @@ module "eks" {
   cloudwatch_log_group_force_destroy = true
 
   # Auto Mode has built-in addons; do not install CoreDNS, vpc-cni, kube-proxy, or Pod Identity Agent here.
-  addons = {}
+  addons = {
+    aws-mountpoint-s3-csi-driver          = {}
+    aws-secrets-store-csi-driver-provider = {}
+    cert-manager                          = {}
+    external-dns                          = {}
+    metrics-server                        = {}
+    prometheus-node-exporter              = {}
+    aws-efs-csi-driver                    = {}
+    aws-fsx-csi-driver                    = {}
+  }
+
+  addon_identity_type = "pod_identity"
+  addon_service_accounts = {
+    "aws-mountpoint-s3-csi-driver" = { namespace = "kube-system", name = "s3-csi-driver-sa" }
+    "aws-efs-csi-driver"           = { namespace = "kube-system", name = "efs-csi-controller-sa" }
+    "aws-fsx-csi-driver"           = { namespace = "kube-system", name = "fsx-csi-controller-sa" }
+    "external-dns"                 = { namespace = "external-dns", name = "external-dns" }
+  }
+
+  # kube-infra: aws-load-balancer-controller-eks-20 (IngressClass `alb`). Pod Identity matches eks-1 overlay pattern.
+  enable_aws_load_balancer_controller        = true
+  aws_load_balancer_controller_identity_type = "pod_identity"
 
   # ── EKS Capabilities (ACK, KRO, Argo CD) ────────────────────────────────────
   # ACK and KRO are always enabled.
@@ -95,7 +128,11 @@ module "eks" {
   # ────────────────────────────────────────────────────────────────────────────
   capabilities = merge(
     {
-      ack = {}
+      ack = {
+        iam_policy_arns = {
+          sqs = "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
+        }
+      }
       kro = {}
     },
     var.argocd_idc_instance_arn != null ? {
@@ -136,15 +173,46 @@ module "eks" {
   # Supported on Auto Mode; NOT supported on Fargate (use IRSA there instead).
   # Remove this block if not using Secrets Store CSI Driver.
   # ────────────────────────────────────────────────────────────────────────────
-  enable_secrets_manager        = true
-  secrets_manager_identity_type = "pod_identity"
-  secrets_manager_associations = [
-    { namespace = "sm-operator-system", service_account = "awssm-sync" },
-    { namespace = "atlantis-1", service_account = "awssm-sync" }
+  # enable_secrets_manager        = true
+  # secrets_manager_identity_type = "pod_identity"
+  # secrets_manager_associations = [
+  #   { namespace = "sm-operator-system", service_account = "awssm-sync" },
+  #   { namespace = "atlantis-1", service_account = "awssm-sync" }
+  # ]
+  # secrets_manager_secret_name_prefixes = ["bitwarden/sm-operator"]
+
+  # Celery consumer + KEDA SQS scaler (Pod Identity); aligns with kube-devops-apps celery on this cluster.
+  enable_sqs_access = true
+  sqs_identity_type = "pod_identity"
+  sqs_access = [
+    {
+      namespace       = "celery"
+      service_account = "celery-workload"
+      queue_arns = [
+        local.celery_jobs_queue_arn,
+        local.celery_jobs_dlq_arn,
+      ]
+      mode = "consumer"
+    },
+    {
+      namespace       = "keda"
+      service_account = "keda-operator"
+      queue_arns      = [local.celery_jobs_queue_arn]
+      mode            = "read_only"
+    },
   ]
-  secrets_manager_secret_name_prefixes = ["bitwarden/sm-operator"]
 
   tags = var.tags
+}
+
+data "aws_eks_cluster_auth" "kubernetes_eks" {
+  name = module.eks.cluster_name
+}
+
+provider "kubernetes" {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  token                  = data.aws_eks_cluster_auth.kubernetes_eks.token
 }
 
 # ── Argo CD CodeConnections (GitHub) ─────────────────────────────────────────

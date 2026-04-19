@@ -378,8 +378,11 @@ run "eks_pod_identity" {
   }
 
   assert {
-    condition     = length(aws_eks_pod_identity_association.addon) == 1
-    error_message = "Pod Identity association for EBS CSI addon should be created"
+    condition = (
+      try(length(aws_eks_addon.this["aws-ebs-csi-driver"].pod_identity_association), 0) > 0 ||
+      try(length(aws_eks_addon.before_compute["aws-ebs-csi-driver"].pod_identity_association), 0) > 0
+    )
+    error_message = "Pod Identity for EBS CSI addon should be configured on aws_eks_addon (pod_identity_association)"
   }
 }
 

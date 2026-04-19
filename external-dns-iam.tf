@@ -74,55 +74,7 @@ resource "aws_eks_pod_identity_association" "external_dns" {
   role_arn        = aws_iam_role.external_dns[0].arn
 }
 
-# IAM policy document for ExternalDNS Route53 permissions
-data "aws_iam_policy_document" "external_dns" {
-  count = var.enable_external_dns ? 1 : 0
-
-  statement {
-    sid    = "AllowChangeResourceRecordSets"
-    effect = "Allow"
-    actions = [
-      "route53:ChangeResourceRecordSets"
-    ]
-    resources = ["arn:${data.aws_partition.current.partition}:route53:::hostedzone/*"]
-  }
-
-  statement {
-    sid    = "AllowListResourceRecordSets"
-    effect = "Allow"
-    actions = [
-      "route53:ListResourceRecordSets"
-    ]
-    resources = ["arn:${data.aws_partition.current.partition}:route53:::hostedzone/*"]
-  }
-
-  statement {
-    sid    = "AllowListHostedZones"
-    effect = "Allow"
-    actions = [
-      "route53:ListHostedZones"
-    ]
-    resources = ["*"]
-  }
-
-  statement {
-    sid    = "AllowListTagsForResource"
-    effect = "Allow"
-    actions = [
-      "route53:ListTagsForResource"
-    ]
-    resources = ["arn:${data.aws_partition.current.partition}:route53:::hostedzone/*"]
-  }
-
-  statement {
-    sid    = "AllowGetChange"
-    effect = "Allow"
-    actions = [
-      "route53:GetChange"
-    ]
-    resources = ["arn:${data.aws_partition.current.partition}:route53:::change/*"]
-  }
-}
+# Route53 permissions: see external-dns-route53-policy.tf (shared with EKS external-dns add-on role).
 
 # IAM policy for ExternalDNS
 resource "aws_iam_role_policy" "external_dns" {
@@ -130,5 +82,5 @@ resource "aws_iam_role_policy" "external_dns" {
 
   name   = "${var.name}-external-dns-policy"
   role   = aws_iam_role.external_dns[0].id
-  policy = data.aws_iam_policy_document.external_dns[0].json
+  policy = data.aws_iam_policy_document.external_dns_route53.json
 }
