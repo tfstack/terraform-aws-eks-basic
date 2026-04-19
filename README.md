@@ -328,7 +328,6 @@ private_access_cidrs   = ["10.0.0.0/8"]
 | [aws_eks_cluster.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_cluster) | resource |
 | [aws_eks_fargate_profile.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_fargate_profile) | resource |
 | [aws_eks_node_group.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_node_group) | resource |
-| [aws_eks_pod_identity_association.addon](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.aws_lb_controller](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.cluster_autoscaler](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
 | [aws_eks_pod_identity_association.dynamodb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_pod_identity_association) | resource |
@@ -358,6 +357,9 @@ private_access_cidrs   = ["10.0.0.0/8"]
 | [aws_iam_role.secrets_manager](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.sqs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role_policy.addon_external_dns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
+| [aws_iam_role_policy.addon_fsx_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
+| [aws_iam_role_policy.addon_mountpoint_s3_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.argocd_codeconnections](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.cluster_autoscaler](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.dynamodb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
@@ -367,6 +369,7 @@ private_access_cidrs   = ["10.0.0.0/8"]
 | [aws_iam_role_policy.secrets_manager_scoped](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy.sqs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy_attachment.addon_ebs_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [aws_iam_role_policy_attachment.addon_efs_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.automode_cluster](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.aws_lb_controller](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.capability](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
@@ -394,6 +397,8 @@ private_access_cidrs   = ["10.0.0.0/8"]
 | [aws_eks_cluster_auth.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/eks_cluster_auth) | data source |
 | [aws_iam_policy_document.addon_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.addon_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.addon_fsx_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.addon_mountpoint_s3_csi_driver](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.argocd_codeconnections](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.aws_lb_controller](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.aws_lb_controller_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -411,9 +416,9 @@ private_access_cidrs   = ["10.0.0.0/8"]
 | [aws_iam_policy_document.eks_cluster_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.eks_fargate_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.eks_nodes_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
-| [aws_iam_policy_document.external_dns](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.external_dns_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.external_dns_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.external_dns_route53](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.kinesis](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.kinesis_assume_role_irsa](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.kinesis_assume_role_pod_identity](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -438,7 +443,7 @@ private_access_cidrs   = ["10.0.0.0/8"]
 |------|-------------|------|---------|:--------:|
 | <a name="input_access_entries"></a> [access\_entries](#input\_access\_entries) | Map of access entries to add to the cluster | <pre>map(object({<br/>    # Access entry<br/>    kubernetes_groups = optional(list(string))<br/>    principal_arn     = string<br/>    type              = optional(string, "STANDARD")<br/>    user_name         = optional(string)<br/>    tags              = optional(map(string), {})<br/>    # Access policy association<br/>    policy_associations = optional(map(object({<br/>      policy_arn = string<br/>      access_scope = object({<br/>        namespaces = optional(list(string))<br/>        type       = string<br/>      })<br/>    })), {})<br/>  }))</pre> | `{}` | no |
 | <a name="input_addon_identity_type"></a> [addon\_identity\_type](#input\_addon\_identity\_type) | Identity type for addons that need IAM (e.g. EBS CSI driver). Use 'pod\_identity' to create Pod Identity associations; requires eks-pod-identity-agent addon and addon\_service\_accounts. | `string` | `"irsa"` | no |
-| <a name="input_addon_service_accounts"></a> [addon\_service\_accounts](#input\_addon\_service\_accounts) | Map of addon name to namespace and service account for Pod Identity. Required when addon\_identity\_type = 'pod\_identity' for addons that need a role (e.g. aws-ebs-csi-driver). | <pre>map(object({<br/>    namespace = string<br/>    name      = string<br/>  }))</pre> | `{}` | no |
+| <a name="input_addon_service_accounts"></a> [addon\_service\_accounts](#input\_addon\_service\_accounts) | Map of EKS add-on name (aws\_eks\_addon key) to Kubernetes namespace and service account name for IAM / Pod Identity.<br/>Required when addon\_identity\_type = "pod\_identity" for each add-on in var.addons that needs a module-created role.<br/>Typical controller service accounts (see AWS EKS docs): aws-ebs-csi-driver → kube-system / ebs-csi-controller-sa;<br/>aws-efs-csi-driver → kube-system / efs-csi-controller-sa; aws-fsx-csi-driver → kube-system / fsx-csi-controller-sa;<br/>aws-mountpoint-s3-csi-driver → kube-system / s3-csi-driver-sa; external-dns (community add-on) → external-dns / external-dns.<br/>When addon\_identity\_type = "irsa", defaults for these three keys are built into the module (local.addon\_service\_accounts); override by passing explicit entries if your chart uses different names. | <pre>map(object({<br/>    namespace = string<br/>    name      = string<br/>  }))</pre> | `{}` | no |
 | <a name="input_addons"></a> [addons](#input\_addons) | Map of EKS addons to enable | <pre>map(object({<br/>    addon_version               = optional(string)<br/>    before_compute              = optional(bool, false)<br/>    configuration_values        = optional(string)<br/>    resolve_conflicts_on_create = optional(string, "OVERWRITE")<br/>    resolve_conflicts_on_update = optional(string, "OVERWRITE")<br/>    service_account_role_arn    = optional(string)<br/>  }))</pre> | `{}` | no |
 | <a name="input_automode_node_pools"></a> [automode\_node\_pools](#input\_automode\_node\_pools) | Built-in node pool types to enable with Auto Mode. Only used when enable\_automode = true. | `list(string)` | <pre>[<br/>  "system",<br/>  "general-purpose"<br/>]</pre> | no |
 | <a name="input_aws_lb_controller_namespace"></a> [aws\_lb\_controller\_namespace](#input\_aws\_lb\_controller\_namespace) | Kubernetes namespace for AWS Load Balancer Controller service account (Pod Identity). Used when aws\_load\_balancer\_controller\_identity\_type = 'pod\_identity'. | `string` | `"aws-load-balancer-controller"` | no |
@@ -481,6 +486,7 @@ private_access_cidrs   = ["10.0.0.0/8"]
 | <a name="input_enable_sqs_access"></a> [enable\_sqs\_access](#input\_enable\_sqs\_access) | Whether to create IAM roles for SQS access (IRSA or Pod Identity per sqs\_identity\_type). One role per sqs\_access entry. | `bool` | `false` | no |
 | <a name="input_enabled_cluster_log_types"></a> [enabled\_cluster\_log\_types](#input\_enabled\_cluster\_log\_types) | List of control plane logging types to enable | `list(string)` | <pre>[<br/>  "api",<br/>  "audit",<br/>  "authenticator"<br/>]</pre> | no |
 | <a name="input_endpoint_public_access"></a> [endpoint\_public\_access](#input\_endpoint\_public\_access) | Whether the Amazon EKS public API server endpoint is enabled | `bool` | `true` | no |
+| <a name="input_external_dns_hosted_zone_arns"></a> [external\_dns\_hosted\_zone\_arns](#input\_external\_dns\_hosted\_zone\_arns) | Optional Route53 hosted zone ARNs for ExternalDNS (enable\_external\_dns) and the external-dns EKS add-on IAM policy. When null or empty, ChangeResourceRecordSets/ListResourceRecordSets are scoped to all zones in the account (arn:...:route53:::hostedzone/*). | `list(string)` | `null` | no |
 | <a name="input_external_dns_identity_type"></a> [external\_dns\_identity\_type](#input\_external\_dns\_identity\_type) | Identity type for External DNS. Use 'pod\_identity' to create Pod Identity association; requires eks-pod-identity-agent addon. | `string` | `"irsa"` | no |
 | <a name="input_external_dns_namespace"></a> [external\_dns\_namespace](#input\_external\_dns\_namespace) | Kubernetes namespace for External DNS service account (Pod Identity). Used when external\_dns\_identity\_type = 'pod\_identity'. | `string` | `"external-dns"` | no |
 | <a name="input_external_dns_service_account"></a> [external\_dns\_service\_account](#input\_external\_dns\_service\_account) | Kubernetes service account name for External DNS (Pod Identity). | `string` | `"external-dns"` | no |
