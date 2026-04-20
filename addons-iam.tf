@@ -116,7 +116,7 @@ resource "aws_iam_role_policy_attachment" "addon_ebs_csi_driver" {
   }
 
   role       = aws_iam_role.addon[each.key].name
-  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEBSCSIDriverEKSClusterScopedPolicy"
 }
 
 resource "aws_iam_role_policy_attachment" "addon_efs_csi_driver" {
