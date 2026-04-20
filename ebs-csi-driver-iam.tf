@@ -70,7 +70,7 @@ resource "aws_iam_role_policy_attachment" "ebs_csi_driver" {
   count = var.enable_ebs_csi_driver ? 1 : 0
 
   role       = aws_iam_role.ebs_csi_driver[0].name
-  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEBSCSIDriverEKSClusterScopedPolicy"
 }
 
 # EKS Pod Identity association for EBS CSI driver (when using Pod Identity)
