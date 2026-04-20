@@ -86,14 +86,30 @@ module "eks" {
 
   # Auto Mode has built-in addons; do not install CoreDNS, vpc-cni, kube-proxy, or Pod Identity Agent here.
   addons = {
-    aws-mountpoint-s3-csi-driver          = {}
-    aws-secrets-store-csi-driver-provider = {}
-    cert-manager                          = {}
-    external-dns                          = {}
-    metrics-server                        = {}
-    prometheus-node-exporter              = {}
-    aws-efs-csi-driver                    = {}
-    aws-fsx-csi-driver                    = {}
+    aws-mountpoint-s3-csi-driver = {
+      addon_version = "v2.5.0-eksbuild.1"
+    }
+    aws-secrets-store-csi-driver-provider = {
+      addon_version = "v3.0.0-eksbuild.1"
+    }
+    cert-manager = {
+      addon_version = "v1.20.2-eksbuild.1"
+    }
+    external-dns = {
+      addon_version = "v0.21.0-eksbuild.2"
+    }
+    metrics-server = {
+      addon_version = "v0.8.1-eksbuild.6"
+    }
+    prometheus-node-exporter = {
+      addon_version = "v1.11.1-eksbuild.2"
+    }
+    aws-efs-csi-driver = {
+      addon_version = "v3.0.0-eksbuild.1"
+    }
+    aws-fsx-csi-driver = {
+      addon_version = "v1.8.0-eksbuild.2"
+    }
   }
 
   addon_identity_type = "pod_identity"
