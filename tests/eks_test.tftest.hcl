@@ -296,6 +296,11 @@ run "eks_ebs_csi_driver_dedicated" {
     condition     = length(aws_eks_pod_identity_association.ebs_csi_driver) == 1
     error_message = "Pod Identity association for EBS CSI driver should be created when ebs_csi_driver_identity_type is pod_identity"
   }
+
+  assert {
+    condition     = aws_iam_role.ebs_csi_driver[0].tags["eks-cluster-name"] == "test-eks-cluster"
+    error_message = "EBS CSI driver IAM role must set tag eks-cluster-name for AmazonEBSCSIDriverEKSClusterScopedPolicy"
+  }
 }
 
 run "eks_secrets_manager_pod_identity" {
@@ -383,6 +388,11 @@ run "eks_pod_identity" {
       try(length(aws_eks_addon.before_compute["aws-ebs-csi-driver"].pod_identity_association), 0) > 0
     )
     error_message = "Pod Identity for EBS CSI addon should be configured on aws_eks_addon (pod_identity_association)"
+  }
+
+  assert {
+    condition     = aws_iam_role.addon["aws-ebs-csi-driver"].tags["eks-cluster-name"] == "test-eks-cluster"
+    error_message = "EBS CSI addon IAM role must set tag eks-cluster-name for AmazonEBSCSIDriverEKSClusterScopedPolicy"
   }
 }
 

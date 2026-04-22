@@ -40,3 +40,13 @@ access_entries = {
   #   }
   # }
 }
+
+# ── Headlamp / SAML — Microsoft Entra or IAM Identity Center (optional) ────
+# headlamp_hostnames = ["headlamp.example.com"]
+# See examples/auto-mode/README.md. Typical Entra:
+# headlamp_saml_metadata_url   = "https://login.microsoftonline.com/<tenant>/federationmetadata/2007-06/..."
+# headlamp_saml_provider_name  = "AzureAD"
+# Legacy (IdC only): headlamp_idc_saml_metadata_url — still supported; prefer headlamp_saml_metadata_url.
+# headlamp_rbac_group_rules = [
+#   { directory_group = "Your-Entra-Group", k8s_group = "platform-admins" },
+# ]
