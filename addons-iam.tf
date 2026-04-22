@@ -99,7 +99,8 @@ resource "aws_iam_role" "addon" {
   name               = "${var.name}-${replace(each.key, "-", "_")}-addon-role"
   assume_role_policy = var.addon_identity_type == "pod_identity" ? data.aws_iam_policy_document.addon_assume_role_pod_identity[each.key].json : data.aws_iam_policy_document.addon_assume_role[each.key].json
 
-  tags = var.tags
+  # Ensures aws-ebs-csi-driver addon roles satisfy AmazonEBSCSIDriverEKSClusterScopedPolicy; harmless on other addon roles.
+  tags = merge(var.tags, { "eks-cluster-name" = aws_eks_cluster.this.name })
 
   depends_on = [
     aws_iam_openid_connect_provider.oidc_provider
