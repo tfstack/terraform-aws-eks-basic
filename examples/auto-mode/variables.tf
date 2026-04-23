@@ -91,3 +91,62 @@ variable "tags" {
     ManagedBy   = "terraform"
   }
 }
+
+# ── Headlamp ──────────────────────────────────────────────────────────────────
+
+variable "headlamp_hostnames" {
+  description = "Hostnames where headlamp is exposed via ALB ingress (one per cluster overlay that has ingress enabled). Used to populate Cognito app client callback/logout URLs. Port-forward users do not need to add entries here — localhost:4466 is always included."
+  type        = list(string)
+  default     = []
+}
+
+variable "headlamp_saml_metadata_url" {
+  description = <<-EOT
+    SAML federation metadata URL for Cognito (phase 2). Use the public metadata URL from your IdP, for example:
+    Microsoft Entra ID: Enterprise application → SAML single sign-on → "App Federation Metadata Url", or the
+    federation metadata URL shown for that app. AWS IAM Identity Center: custom SAML app → IAM Identity Center metadata URL.
+    Leave null on first apply; use outputs headlamp_cognito_saml_acs_url and headlamp_cognito_saml_entity_id to configure the IdP.
+    If both this and headlamp_idc_saml_metadata_url are set, this variable wins.
+  EOT
+  type        = string
+  default     = null
+}
+
+variable "headlamp_idc_saml_metadata_url" {
+  description = <<-EOT
+    Deprecated: use headlamp_saml_metadata_url. Kept for backward compatibility with existing tfvars.
+  EOT
+  type        = string
+  default     = null
+}
+
+variable "headlamp_saml_provider_name" {
+  description = <<-EOT
+    Cognito SAML identity provider name (must match supported_identity_providers on the app client).
+    Use "AzureAD" for Microsoft Entra ID enterprise SAML apps, or "IdentityCenter" for IAM Identity Center.
+  EOT
+  type        = string
+  default     = "IdentityCenter"
+
+  validation {
+    condition     = length(var.headlamp_saml_provider_name) >= 1 && length(var.headlamp_saml_provider_name) <= 32
+    error_message = "headlamp_saml_provider_name must be 1-32 characters (Cognito SAML provider name limit)."
+  }
+}
+
+variable "headlamp_rbac_group_rules" {
+  description = <<-EOT
+    Ordered rules for the Headlamp Pre Token Lambda: each entry maps a SAML directory group string (Entra display
+    name or object ID) to a Kubernetes group name on cognito:groups. List order is the walk order (higher privilege
+    rules first is conventional). directory_group must match the SAML claim byte-for-byte. k8s_group must match
+    ClusterRoleBinding subjects[].name in apps/headlamp/base/rbac.yaml. Users with no matching rule are denied.
+  EOT
+  type = list(object({
+    directory_group = string
+    k8s_group       = string
+  }))
+  default = [
+    { directory_group = "SSO-ArgoCD Admin", k8s_group = "platform-admins" },
+    { directory_group = "SSO-ArgoCD ReadOnly", k8s_group = "platform-readonly" },
+  ]
+}

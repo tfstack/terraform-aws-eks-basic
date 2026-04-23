@@ -58,7 +58,8 @@ resource "aws_iam_role" "ebs_csi_driver" {
   name               = "${var.name}-ebs-csi-driver-role"
   assume_role_policy = var.ebs_csi_driver_identity_type == "pod_identity" ? data.aws_iam_policy_document.ebs_csi_driver_assume_role_pod_identity[0].json : data.aws_iam_policy_document.ebs_csi_driver_assume_role_irsa[0].json
 
-  tags = var.tags
+  # AmazonEBSCSIDriverEKSClusterScopedPolicy uses aws:PrincipalTag/eks-cluster-name on this role.
+  tags = merge(var.tags, { "eks-cluster-name" = aws_eks_cluster.this.name })
 
   depends_on = [
     aws_iam_openid_connect_provider.oidc_provider
@@ -70,7 +71,7 @@ resource "aws_iam_role_policy_attachment" "ebs_csi_driver" {
   count = var.enable_ebs_csi_driver ? 1 : 0
 
   role       = aws_iam_role.ebs_csi_driver[0].name
-  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEBSCSIDriverEKSClusterScopedPolicy"
 }
 
 # EKS Pod Identity association for EBS CSI driver (when using Pod Identity)

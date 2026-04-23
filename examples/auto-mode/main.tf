@@ -14,6 +14,10 @@ terraform {
       source  = "hashicorp/tls"
       version = "~> 4.0"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.4"
+    }
   }
 }
 
@@ -187,15 +191,17 @@ module "eks" {
   # ── Secrets Manager (Pod Identity) ──────────────────────────────────────────
   # Grants named service accounts access to Secrets Manager via Pod Identity.
   # Supported on Auto Mode; NOT supported on Fargate (use IRSA there instead).
-  # Remove this block if not using Secrets Store CSI Driver.
+  # One IAM role shared across all associations; Pod Identity agent is built-in.
   # ────────────────────────────────────────────────────────────────────────────
-  # enable_secrets_manager        = true
-  # secrets_manager_identity_type = "pod_identity"
-  # secrets_manager_associations = [
-  #   { namespace = "sm-operator-system", service_account = "awssm-sync" },
-  #   { namespace = "atlantis-1", service_account = "awssm-sync" }
-  # ]
-  # secrets_manager_secret_name_prefixes = ["bitwarden/sm-operator"]
+  enable_secrets_manager        = true
+  secrets_manager_identity_type = "pod_identity"
+  secrets_manager_associations = [
+    { namespace = "sm-operator-system", service_account = "awssm-sync" },
+    { namespace = "atlantis-1", service_account = "awssm-sync" },
+    # headlamp-secrets-sync syncs the Cognito OIDC credentials from Secrets Manager.
+    { namespace = "headlamp", service_account = "headlamp-secrets-sync" },
+  ]
+  secrets_manager_secret_name_prefixes = ["bitwarden/sm-operator", "headlamp/oidc"]
 
   # Celery consumer + KEDA SQS scaler (Pod Identity); aligns with kube-devops-apps celery on this cluster.
   enable_sqs_access = true
