@@ -25,6 +25,13 @@ provider "aws" {
   region = var.aws_region
 }
 
+# Required while state still has resources created in us-east-1 (e.g. ACM for CloudFront). After `terraform apply`
+# removes them, this block can stay (harmless) or you may remove it if no resource uses `provider = aws.us_east_1`.
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
 data "aws_caller_identity" "current" {}
 
 locals {

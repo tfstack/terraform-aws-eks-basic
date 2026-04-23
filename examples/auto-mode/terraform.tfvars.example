@@ -46,7 +46,8 @@ access_entries = {
 # See examples/auto-mode/README.md. Typical Entra:
 # headlamp_saml_metadata_url   = "https://login.microsoftonline.com/<tenant>/federationmetadata/2007-06/..."
 # headlamp_saml_provider_name  = "AzureAD"
-# Legacy (IdC only): headlamp_idc_saml_metadata_url — still supported; prefer headlamp_saml_metadata_url.
 # headlamp_rbac_group_rules = [
 #   { directory_group = "Your-Entra-Group", k8s_group = "platform-admins" },
 # ]
+# WAF logging (optional): bucket name must start with aws-waf-logs- for regional ACLs. Omit or null to skip logging.
+# headlamp_waf_log_s3_bucket_name = "aws-waf-logs-myorg-dev"
