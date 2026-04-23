@@ -134,6 +134,15 @@ variable "headlamp_saml_provider_name" {
   }
 }
 
+variable "headlamp_waf_log_s3_bucket_name" {
+  description = <<-EOT
+    S3 bucket name for Headlamp WAFv2 Web ACL logging (log_destination_configs). AWS requires regional WAF logs to go
+    to a bucket whose name starts with aws-waf-logs-. Leave null to create the Web ACL without a logging configuration.
+  EOT
+  type        = string
+  default     = null
+}
+
 variable "headlamp_rbac_group_rules" {
   description = <<-EOT
     Ordered rules for the Headlamp Pre Token Lambda: each entry maps a SAML directory group string (Entra display

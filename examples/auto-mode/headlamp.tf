@@ -1,10 +1,8 @@
 # Headlamp: Cognito (SAML + hosted UI) → Pre Token Lambda (Entra groups → cognito:groups) → EKS OIDC + Secrets Manager for in-cluster Headlamp.
-# Phase 1: apply without headlamp_saml_metadata_url → use outputs for IdP ACS/audience. Phase 2: set URL + headlamp_saml_provider_name, apply again.
+# Apply once without headlamp_saml_metadata_url to read SAML ACS/entity outputs; set URL + headlamp_saml_provider_name and apply again.
 
 locals {
-  _headlamp_saml_primary     = var.headlamp_saml_metadata_url != null ? trimspace(var.headlamp_saml_metadata_url) : ""
-  _headlamp_saml_legacy      = var.headlamp_idc_saml_metadata_url != null ? trimspace(var.headlamp_idc_saml_metadata_url) : ""
-  headlamp_saml_metadata_url = local._headlamp_saml_primary != "" ? local._headlamp_saml_primary : local._headlamp_saml_legacy
+  headlamp_saml_metadata_url = var.headlamp_saml_metadata_url != null ? trimspace(var.headlamp_saml_metadata_url) : ""
   headlamp_saml_enabled      = local.headlamp_saml_metadata_url != ""
 }
 
@@ -197,4 +195,75 @@ resource "aws_lambda_permission" "headlamp_cognito_pre_token" {
   function_name = aws_lambda_function.headlamp_pre_token.function_name
   principal     = "cognito-idp.amazonaws.com"
   source_arn    = aws_cognito_user_pool.headlamp.arn
+}
+
+# ── Headlamp WAFv2 (REGIONAL; attach ARN from output headlamp_waf_acl_arn to ALB ingress in kube-platform-apps) ──
+
+resource "aws_wafv2_web_acl" "headlamp" {
+  name        = "${var.cluster_name}-headlamp"
+  description = "Regional WAFv2 Web ACL for Headlamp ALB ${var.cluster_name}"
+  scope       = "REGIONAL"
+
+  default_action {
+    allow {}
+  }
+
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 1
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "headlamp_waf_common"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "RateLimitRule"
+    priority = 2
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 2000
+        aggregate_key_type = "IP"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "headlamp_waf_ratelimit"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "headlamp_waf_acl"
+    sampled_requests_enabled   = true
+  }
+
+  tags = var.tags
+}
+
+resource "aws_wafv2_web_acl_logging_configuration" "headlamp" {
+  count = var.headlamp_waf_log_s3_bucket_name != null ? 1 : 0
+
+  resource_arn            = aws_wafv2_web_acl.headlamp.arn
+  log_destination_configs = ["arn:aws:s3:::${var.headlamp_waf_log_s3_bucket_name}"]
 }

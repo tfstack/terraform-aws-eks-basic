@@ -98,7 +98,7 @@ Headlamp in your GitOps repo consumes **Cognito** as OIDC issuer; this Terraform
 
 **Typical SAML flow:**
 
-1. **First apply** without `headlamp_saml_metadata_url` (and without legacy `headlamp_idc_saml_metadata_url`). Use IdP ACS / audience from:
+1. **First apply** without `headlamp_saml_metadata_url`. Use IdP ACS / audience from:
 
    ```bash
    terraform output -raw headlamp_cognito_saml_acs_url

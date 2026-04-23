@@ -85,3 +85,7 @@ output "headlamp_secrets_manager_secret_arn" {
   value       = aws_secretsmanager_secret.headlamp_oidc.arn
 }
 
+output "headlamp_waf_acl_arn" {
+  description = "Regional WAFv2 Web ACL ARN for Headlamp — set on ALB ingress as alb.ingress.kubernetes.io/wafv2-acl-arn in kube-platform-apps."
+  value       = aws_wafv2_web_acl.headlamp.arn
+}
