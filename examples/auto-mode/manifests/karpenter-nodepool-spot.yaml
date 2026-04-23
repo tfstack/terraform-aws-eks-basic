@@ -1,6 +1,6 @@
 # Karpenter NodePool: interruptible batch capacity on general compute (C + M categories), spot-first
 # with on-demand fallback (separate from GPU accelerated pool).
-# Applied by karpenter-nodepool-batch-spot.tf only — do not merge into karpenter-nodepool-accelerated.yaml.
+# Applied by karpenter-nodepool-spot.tf only — do not merge into karpenter-nodepool-accelerated.yaml.
 #
 # Spot-first with on-demand fallback in ONE pool: requirements allow both capacity types; Karpenter
 # prefers spot and falls back to on-demand when spot cannot satisfy provisioning (see Karpenter
@@ -11,7 +11,7 @@
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
-  name: batch-spot
+  name: spot
 spec:
   # Prefer reclaiming underutilized capacity when budgets allow.
   disruption:
@@ -46,7 +46,7 @@ spec:
             - c
             - m
       taints:
-        - key: devops.k8sforge/batch-spot
+        - key: devops.k8sforge/spot
           effect: NoSchedule
       # 336h == 14 days; aligns with EKS Auto Mode default node lifetime (AWS “Create a Node Pool” → Disruption).
       expireAfter: 336h

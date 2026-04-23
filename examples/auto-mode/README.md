@@ -71,7 +71,7 @@ Terraform applies two **`kubernetes_manifest`** resources after `module.eks` (se
 | NodePool | Role |
 | --- | --- |
 | `gpu` | Accelerated / NVIDIA (**g5/g6/g6e**), on-demand, GPU taint for isolation. |
-| `batch-spot` | Spot-first batch-style general compute with on-demand fallback; caps and disruption in YAML. |
+| `spot` | Spot-first batch-style general compute with on-demand fallback; caps and disruption in YAML. |
 
 Both set `nodeClassRef` to Auto Mode **`NodeClass`** **`default`**. Remove or edit the `.tf` / YAML files if you do not want these pools.
 
@@ -90,7 +90,7 @@ kubectl get nodes -w
 # kubectl create deployment demo --image=nginx --replicas=5
 ```
 
-You should see nodes appear for the **built-in** pools when pending pods need capacity. **GPU** and **batch** shapes appear when workloads match the **Karpenter `NodePool`** requirements and tolerations.
+You should see nodes appear for the **built-in** pools when pending pods need capacity. **GPU** and **spot** NodePool shapes appear when workloads match the **Karpenter `NodePool`** requirements and tolerations.
 
 ## Optional: Headlamp OIDC and SAML
 
@@ -98,7 +98,7 @@ Headlamp in your GitOps repo consumes **Cognito** as OIDC issuer; this Terraform
 
 **Typical SAML flow:**
 
-1. **First apply** without `headlamp_saml_metadata_url`. Use IdP ACS / audience from:
+1. **First apply** without `headlamp_saml_metadata_url` (and without legacy `headlamp_idc_saml_metadata_url`). Use IdP ACS / audience from:
 
    ```bash
    terraform output -raw headlamp_cognito_saml_acs_url
